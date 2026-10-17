@@ -43,6 +43,8 @@
 .escolha:has(input:checked) { border-color: var(--ouvido); }
 .escolha input { accent-color: var(--ouvido); margin-top: 4px; }
 .escolha b { display: block; } .escolha small { color: var(--papel-2); font-size: var(--t-1); }
+.escolha.extra { margin-top: 12px; }
+.escolha.extra:has(input:disabled) { opacity: .5; cursor: not-allowed; }
 .agentes { border: 0; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .agentes:disabled { opacity: .45; }
 .agente { display: inline-flex; gap: 6px; align-items: center; margin: 0; font: 600 var(--t-1)/1 var(--fonte); cursor: pointer;

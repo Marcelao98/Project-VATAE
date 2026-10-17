@@ -5,12 +5,14 @@ Usar o próprio comando (em vez de chamar as funções) mantém a tela igual ao 
 pessoa vê é o que a CLI imprime, e o painel de terminal só roda comandos `vatty`. Nada de shell livre.
 """
 
+import importlib.util
 import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
+from .. import fonte
 from . import claude, pedidos
 from .fila import Cancelado
 
@@ -73,6 +75,9 @@ def montar_argv(entrada: str, opcoes: dict, saida, python: str = sys.executable)
     lang = str(opcoes.get("lang", "")).strip()
     if re.fullmatch(r"[a-z]{2,3}|auto", lang):
         argv += ["--lang", lang]
+    navegador = str(opcoes.get("cookies") or "").lower()
+    if navegador in fonte.NAVEGADORES:
+        argv += ["--cookies-navegador", navegador]
     glossario = opcoes.get("glossario")
     if glossario and Path(glossario).is_file():
         argv += ["--glossario", str(glossario)]
@@ -140,10 +145,23 @@ def executar(trabalho, ctx, saida, popen=subprocess.Popen, achar_claude=None) ->
         raise RuntimeError(ultima_erro or f"A Vatty terminou com código {codigo}.")
     if not pasta:
         raise RuntimeError("A Vatty terminou sem dizer onde guardou o resultado.")
+    if opcoes.get("slides"):
+        _fazer_slides(pasta, ctx)
     anotados = pedidos.registrar(pasta, opcoes.get("agentes"), opcoes.get("objetivo", ""))
     if anotados:
         _agentes(pasta, anotados, ctx, popen, achar_claude or claude.achar)
     return pasta
+
+
+def _fazer_slides(pasta, ctx) -> None:
+    """Slides com os prints (HTML; PDF também, se o reportlab estiver instalado). Falha vira aviso."""
+    from .. import slides
+    formatos = ("html", "pdf") if importlib.util.find_spec("reportlab") else ("html",)
+    try:
+        for arquivo in slides.gerar(pasta, formatos):
+            ctx.log(f"Slides prontos: {arquivo}")
+    except slides.ErroSlides as e:
+        ctx.log(f"Aviso: sem slides: {e}")
 
 
 def _agentes(pasta, anotados, ctx, popen, achar_claude) -> None:

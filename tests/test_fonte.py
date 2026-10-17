@@ -247,5 +247,17 @@ class TestListarPlaylist(unittest.TestCase):
         self.assertEqual(duble.ultimo.opcoes["extract_flat"], "in_playlist")
 
 
+
+class TestCookiesDoNavegador(unittest.TestCase):
+    def test_so_com_a_variavel_e_navegador_conhecido(self):
+        from unittest import mock
+        with mock.patch.dict("os.environ", {fonte.VAR_NAVEGADOR: "Firefox"}):
+            self.assertEqual(fonte._opcoes()["cookiesfrombrowser"], ("firefox",))
+        with mock.patch.dict("os.environ", {fonte.VAR_NAVEGADOR: "netscape; rm"}):
+            self.assertNotIn("cookiesfrombrowser", fonte._opcoes())
+        with mock.patch.dict("os.environ", {}, clear=True):
+            self.assertNotIn("cookiesfrombrowser", fonte._opcoes())
+
+
 if __name__ == "__main__":
     unittest.main()

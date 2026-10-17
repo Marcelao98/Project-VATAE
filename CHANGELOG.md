@@ -16,11 +16,20 @@ Painel "Começar" no `vatty ui`.
   Code, ou se ele falhar, o texto fica salvo e o pedido fica pendente ("faz os pedidos da Vatty" ou "copiar
   prompt"). Gravar e transcrever não precisam dele. **Provado de verdade na nuvem**: o Escrivão escreveu os
   pontos-chave de uma transcrição curta e o pedido foi marcado como feito.
+- **Slides com os prints** (`vatty slides <pasta> --formato html pdf`, e a caixa "Montar slides" no painel): um
+  slide por tela do visual, com o print e a fala daquele intervalo. `slides.html` é um arquivo só (imagens
+  dentro, setas passam, abre isolado na interface); `slides.pdf` com o reportlab. Sem IA.
+- **YouTube "prove que não é robô"**: `--cookies-navegador firefox|edge|chrome...` (e "Entrar como você" no
+  painel) usa o login do navegador; o erro agora diz o que fazer.
 - Corrigido: POST cujo corpo a rota não lia (Parar, Cancelar, Tentar de novo) deixava o corpo na conexão, e a
   requisição seguinte chegava como `{}GET` (erro 501).
 - Checagem de saúde lista o Claude Code (opcional). Biblioteca reconhece `pericia-*.md`, `cartoes-*.md` e
   `legenda.<lang>.srt`.
-- 537 testes (eram 524). Conferido no Chromium da nuvem com uma gravação falsa nos três modos, no celular
+- **Corrigido no Windows ("Failed to fetch")**: o servidor do Python deixava duas Vattys abrirem a mesma porta,
+  e o navegador falava ora com uma, ora com outra. Agora a porta é exclusiva; se a 8765 estiver ocupada, abre
+  noutra e avisa. Erros do servidor vão para `vatty-ui-erros.log`, a tela diz quando perdeu a conexão, e link
+  recusado mostra o motivo (antes: "Algo deu errado (400)").
+- 548 testes (eram 524). Conferido no Chromium da nuvem com uma gravação falsa nos três modos, no celular
   (390 px) e no tema claro, sem erro no console. **Não verificado**: gravar de verdade pelo painel no Windows.
 
 ## 0.16.0 — 2026-10-13

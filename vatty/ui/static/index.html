@@ -83,6 +83,8 @@
             <label for="y-links">Links, um por linha</label>
             <textarea id="y-links" rows="3" placeholder="https://www.youtube.com/watch?v=..."></textarea>
             <label class="marcar"><input type="checkbox" id="y-legenda"> Usar a legenda do vídeo, se houver (mais rápido; erra mais nomes)</label>
+            <label>Entrar como você no YouTube <small class="dica">(se ele pedir para provar que não é robô)</small>
+              <select id="y-cookies"><option value="">Não</option><option value="firefox">Pelo Firefox (o mais garantido)</option><option value="edge">Pelo Edge</option><option value="chrome">Pelo Chrome</option><option value="brave">Pelo Brave</option></select></label>
           </div>
           <details class="opcoes">
             <summary>Mais opções</summary>
@@ -103,6 +105,8 @@
             <label class="escolha"><input type="radio" name="depois" value="agentes">
               <span><b>Transcrever e chamar os agentes</b><small id="p-agentes-dica">Usa o Claude Code deste PC, com a sua conta. Só o texto vai para a IA.</small></span></label>
           </div>
+          <label class="escolha extra" id="l-slides"><input type="checkbox" id="p-slides">
+            <span><b>Montar slides com os prints</b><small id="p-slides-dica">Cada tela no momento em que apareceu, com o que foi dito. Sai um slides.html (e PDF).</small></span></label>
           <fieldset class="agentes" id="p-agentes" disabled><legend class="so-leitor">Agentes</legend></fieldset>
           <label class="objetivo">O que você quer? <small>(foco, nível, ou o que estava testando)</small>
             <input id="p-objetivo" maxlength="300" placeholder="Ex.: prazos e decisões / testei o cadastro, esperava cair no painel" disabled></label>

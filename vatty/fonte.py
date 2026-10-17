@@ -5,6 +5,7 @@ De onde vem o conteúdo: URL de vídeo (YouTube, TikTok e o que o yt-dlp suporta
 """
 
 import copy
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -49,8 +50,23 @@ class Video:
         return dados
 
 
+NAVEGADORES = ("firefox", "edge", "chrome", "brave", "opera", "vivaldi", "chromium", "safari")
+VAR_NAVEGADOR = "VATTY_COOKIES_NAVEGADOR"
+
+
+def _cookies() -> dict:
+    """
+    Login do navegador (cookies), quando o YouTube pede "prove que não é robô". O navegador vem da
+    variável VATTY_COOKIES_NAVEGADOR (a CLI preenche com --cookies-navegador). O yt-dlp lê os cookies
+    direto do perfil do navegador; nada é guardado pela Vatty.
+    """
+    navegador = os.environ.get(VAR_NAVEGADOR, "").strip().lower()
+    return {"cookiesfrombrowser": (navegador,)} if navegador in NAVEGADORES else {}
+
+
 def _opcoes(**extras) -> dict:
     return {
+        **_cookies(),
         "quiet": True,
         "no_warnings": True,
         "noprogress": True,

@@ -11,7 +11,11 @@ import queue
 import re
 import secrets
 import shutil
+import socket
+import sys
 import tempfile
+import time
+import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -31,8 +35,27 @@ def nome_seguro(nome: str) -> str:
     return base[:120]
 
 
+ARQUIVO_ERROS = "vatty-ui-erros.log"
+
+
 class Servidor(ThreadingHTTPServer):
     daemon_threads = True
+    # No Windows, SO_REUSEADDR deixa DUAS Vattys abrirem a mesma porta: o navegador falava ora com uma,
+    # ora com outra (token inválido, "Failed to fetch"). Lá a porta é exclusiva; no Linux/Mac fica como era.
+    allow_reuse_address = sys.platform != "win32"
+
+    def server_bind(self):
+        if sys.platform == "win32" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+    def registrar_erro(self, onde: str) -> None:
+        """Erro inesperado de um pedido: vai para vatty-ui-erros.log (ao lado de transcricoes/) para diagnóstico."""
+        try:
+            with open(self.raiz.resolve().parent / ARQUIVO_ERROS, "a", encoding="utf-8") as f:
+                f.write(f"--- {time.strftime('%Y-%m-%d %H:%M:%S')} {onde}\n{traceback.format_exc()}\n")
+        except OSError:
+            pass
 
     def __init__(self, endereco, raiz, fila, token=None, uploads=None, handler=None, gravador=None):
         super().__init__(endereco, handler or Handler)
@@ -99,7 +122,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", tipo or mimetypes.guess_type(caminho.name)[0] or "application/octet-stream")
         self.send_header("Content-Length", str(tam))
-        if nome:
+        if nome and nome.endswith(".html"):
+            # abre na aba (os slides), mas isolado: sandbox = origem própria, sem acesso à API da Vatty
+            self.send_header("Content-Security-Policy", "sandbox allow-scripts")
+        elif nome:
             self.send_header("Content-Disposition", f'attachment; filename="{nome}"')
         self.end_headers()
         with open(caminho, "rb") as f:
@@ -107,11 +133,19 @@ class Handler(BaseHTTPRequestHandler):
 
     # --- roteamento ---
     def do_GET(self):
-        self._rotear("GET")
+        try:
+            self._rotear("GET")
+        except Exception:
+            self.server.registrar_erro(f"GET {self.path.split('?')[0]}")
+            raise
 
     def do_POST(self):
         self._corpo_lido = False
-        self._rotear("POST")
+        try:
+            self._rotear("POST")
+        except Exception:
+            self.server.registrar_erro(f"POST {self.path.split('?')[0]}")
+            raise
         if not self._corpo_lido:  # rota que não usa o corpo: ele não pode sobrar na conexão (viraria "{}GET")
             n = int(self.headers.get("Content-Length") or 0)
             if 0 < n <= CORPO_JSON_MAX:
@@ -139,6 +173,7 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
         except Exception as e:  # nunca derruba o servidor por causa de um pedido
+            self.server.registrar_erro(f"{metodo} {caminho}")
             self._erro(500, f"Erro interno: {e}")
 
     def _estatico(self, caminho: str) -> None:

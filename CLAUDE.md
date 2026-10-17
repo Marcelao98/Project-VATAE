@@ -65,6 +65,7 @@ duas metades compartilham:
 | `_consultas/<pergunta>/trechos.md`, `resposta.md` | código, Consulta | `vatty perguntar` escolhe os trechos; o agente responde só com eles |
 | `_comparacoes/comparacao-<a>-<b>.md` | Comparador | só o agente, lendo duas pastas |
 | `pericia-<assunto>.md` | Perito | laudo de uma gravação de teste de programa (de preferência com `--tela`): seções `## Resumo/Bugs/Lentidão e espera/Atrito/Comportamento observado/Para reproduzir/Dúvidas`; bug como `[mm:ss] o que \| evidência \| gravidade \| certeza` |
+| `slides.html`, `slides.pdf` | Slides (código) | `vatty slides <pasta>` (ou o painel): um slide por tela do `visual.json`, com o print (embutido no HTML) e a fala do `transcricao.json` daquele intervalo; precisa do visual (`--visual aula/app` ou gravação com tela) |
 | `pedidos.json` | Painel (código) | só quando o painel pediu agentes: lista de `{agente, objetivo, pedido_em, estado}` (`pendente`/`feito`); ver "Pedidos do painel" |
 | `ata-<assunto>.docx`, `.pdf` | Ata (código) | `vatty ata <pasta>`: cabeçalho (data, duração, participantes) vindo de `fonte.json`/`falantes.json`, mais o `.md` do agente, com `Pessoa N` trocada pelos nomes dados |
 
@@ -159,6 +160,8 @@ Regra: **testar comportamento, não linhas.** Pouco teste bom vale mais que muit
 12. Painel "Começar" no `vatty ui`: gravar áudio, gravar tela e áudio ou puxar do YouTube, e só guardar ou
     anotar pedido para os agentes; modos Passo a passo (padrão), Bancada e Estúdio. **(feito; conferido na
     nuvem com gravação falsa, falta gravar de verdade pelo painel no Windows)**
+13. Slides com os prints (`vatty slides`, opção no painel) e login do navegador para o YouTube
+    (`--cookies-navegador`). **(feito; slides conferidos com imagens sintéticas, login não testado no YouTube)**
 
 ## Comandos
 
@@ -176,5 +179,6 @@ vatty lote lista.txt
 vatty buscar "termo"
 vatty corrigir transcricoes/aula --glossario glossario.txt
 vatty legenda transcricoes/aula --formato srt vtt
+vatty slides transcricoes/aula --formato html pdf
 vatty ata transcricoes/reuniao --nomes "Pessoa 1=Ana" --formato docx pdf
 ```

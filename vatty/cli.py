@@ -2,13 +2,14 @@
 
 import argparse
 import json
+import os
 import sys
 import tempfile
 import textwrap
 import time
 from pathlib import Path
 
-from . import acervo, app, aula, ata, audio, cartoes as _cartoes, traducao as _traducao, diarizar, fonte, glossario, gravacao, legenda, motor, ocr, pasta, perfis, preprocessar, quadros, srt, tela, visual, vozes
+from . import acervo, app, aula, ata, audio, cartoes as _cartoes, traducao as _traducao, diarizar, fonte, glossario, gravacao, legenda, motor, ocr, pasta, perfis, preprocessar, quadros, slides as _slides, srt, tela, visual, vozes
 from .audio import ErroDeDecodificacao, FfmpegAusente
 
 PREPROCESSAR_ESCOLHAS = ("perguntar", "sim", "nao")
@@ -47,6 +48,9 @@ def _opcoes_comuns(p) -> None:
                    help="arquivo com correções 'errado = certo', aplicadas ao texto depois de transcrever "
                         f"(sem a flag, usa {glossario.arquivo_padrao()} se existir)")
     p.add_argument("--saida", type=Path, default=Path("transcricoes"), help="pasta de saída (padrão: transcricoes/)")
+    p.add_argument("--cookies-navegador", dest="cookies_navegador", choices=fonte.NAVEGADORES, metavar="NAVEGADOR",
+                   help="usa o login desse navegador (firefox, edge, chrome...) quando o YouTube pede para provar que "
+                        "não é robô. O Firefox é o mais garantido no Windows")
     p.add_argument("--apagar-audio", dest="apagar_audio", action="store_true", default=None,
                    help="gravação: apaga os .wav depois de transcrever, sem perguntar")
     p.add_argument("--manter-audio", dest="apagar_audio", action="store_false", default=None,
@@ -214,10 +218,18 @@ DICA_IMITAR_NAVEGADOR = ('Dica: este site exige imitar um navegador. Atualize as
                          'pip install -e . (ou pip install -U "yt-dlp[default,curl-cffi]")')
 
 
+DICA_LOGIN = ('Dica: o YouTube pediu para provar que não é robô. Use o login do seu navegador: '
+              '--cookies-navegador firefox (ou edge, chrome...; no painel, "Entrar como você"). O Firefox é o mais '
+              'garantido: o Chrome no Windows protege os cookies. Atualizar o yt-dlp também ajuda: '
+              'pip install -U "yt-dlp[default,curl-cffi]"')
+
+
 def _erro_download(e) -> str:
     texto = str(e)
     if "mpersonat" in texto or "Unexpected response from webpage request" in texto:
         texto += f"\n{DICA_IMITAR_NAVEGADOR}"
+    if "not a bot" in texto or "Sign in to confirm" in texto or "--cookies" in texto:
+        texto += f"\n{DICA_LOGIN}"
     return f"não consegui ler/baixar o vídeo: {texto}"
 
 
@@ -551,6 +563,8 @@ def _fechar_tela(captura, resultado, janela) -> None:
 
 def _executar(args) -> int:
     """Produz a pasta do vídeo para `args.entrada` (URL, arquivo ou pasta de gravação)."""
+    if getattr(args, "cookies_navegador", None):
+        os.environ[fonte.VAR_NAVEGADOR] = args.cookies_navegador  # a fonte lê daqui
     comeco = time.perf_counter()
     visual_pedido = getattr(args, "visual", "nenhum")
     if visual_pedido == "auto" and not sys.stdin.isatty():
@@ -860,6 +874,24 @@ def _main_legenda(argv) -> int:
     return 0
 
 
+def _main_slides(argv) -> int:
+    p = argparse.ArgumentParser(prog="vatty slides", description="Transforma um vídeo ou gravação já transcrito em "
+                                "slides: o print de cada tela na hora certa, com o que foi dito. Precisa do visual "
+                                "(--visual aula/app, ou gravação com --tela).")
+    p.add_argument("pasta")
+    p.add_argument("--formato", nargs="+", choices=("html", "pdf"), default=["html"],
+                   help="html (padrão: um arquivo só, abre no navegador) e/ou pdf (precisa do reportlab)")
+    args = p.parse_args(argv)
+    try:
+        arquivos = _slides.gerar(args.pasta, args.formato)
+    except _slides.ErroSlides as e:
+        print(f"\nErro: {e}", file=sys.stderr)
+        return 1
+    for arquivo in arquivos:
+        print(f"Slides prontos: {arquivo}")
+    return 0
+
+
 def main(argv=None) -> int:
     # Título com emoji num terminal cp1252 não pode derrubar o programa. `line_buffering`: com a saída
     # redirecionada (arquivo, outro programa) o Python guarda o texto num buffer e parece travado.
@@ -886,6 +918,8 @@ def main(argv=None) -> int:
         return app.main(argv[1:])
     if argv and argv[0] == "corrigir":
         return _main_corrigir(argv[1:])
+    if argv and argv[0] == "slides":
+        return _main_slides(argv[1:])
     if argv and argv[0] == "legenda":
         return _main_legenda(argv[1:])
     if argv and argv[0] == "buscar":

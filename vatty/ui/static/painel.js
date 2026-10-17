@@ -82,6 +82,11 @@ function atualizarResumo() {
   }
   if (painel.fonte === "youtube") linhas.push(["Links", String(links().length)]);
   const nomes = agentesMarcados().map((id) => (painel.agentes.find((a) => a.id === id) || {}).nome).filter(Boolean);
+  const semTela = painel.fonte === "audio";
+  $("p-slides").disabled = semTela;
+  $("p-slides-dica").textContent = semTela ? "Só com tela: escolha \"Gravar tela e áudio\" ou \"Puxar do YouTube\"."
+    : "Cada tela no momento em que apareceu, com o que foi dito. Sai um slides.html (e PDF).";
+  if ($("p-slides").checked && !semTela) linhas.push(["Slides", "sim, com os prints"]);
   linhas.push(["Depois", comAgentes ? (nomes.join(", ") || "escolha os agentes") : "só guardar"]);
   linhas.push(["Onde fica", "transcricoes/"]);
   $("resumo-pedido").replaceChildren(...linhas.map(([k, v]) => el("div", {}, el("dt", {}, k), el("dd", {}, v))));
@@ -92,6 +97,7 @@ function atualizarResumo() {
 
 function opcoesTranscricao() {
   const o = { falantes: $("p-falantes").value, lang: $("p-lang").value };
+  if ($("p-slides").checked && !$("p-slides").disabled) o.slides = true;
   if (depois() === "agentes") { o.agentes = agentesMarcados(); o.objetivo = $("p-objetivo").value.trim(); }
   return o;
 }
@@ -111,11 +117,13 @@ async function comecar() {
     return;
   }
   const opcoes = opcoesTranscricao();
-  painel.pedido = { fonte: painel.fonte, agentes: opcoes.agentes || [], objetivo: opcoes.objetivo || "" };
+  painel.pedido = { fonte: painel.fonte, agentes: opcoes.agentes || [], objetivo: opcoes.objetivo || "", slides: !!opcoes.slides };
   painel.trabalhos = [];
   try {
     if (painel.fonte === "youtube") {
       if ($("y-legenda").checked) opcoes.texto = "legenda";
+      if ($("y-cookies").value) opcoes.cookies = $("y-cookies").value;
+      if (opcoes.slides) opcoes.visual = "aula";  // os slides precisam do que a tela mostrou
       const r = await post("trabalhos", { entradas: links(), opcoes });
       painel.trabalhos = r.criados.map((t) => t.id);
       if (r.recusados.length) avisoPainel(r.recusados.map((x) => x.erro).join(" "), true);
@@ -138,9 +146,15 @@ async function comecar() {
 /* ---------- gravação ---------- */
 function vigiarGravacao() {
   clearInterval(painel.vigia);
+  let falhas = 0;
   painel.vigia = setInterval(async () => {
-    const r = await api("gravacao").catch(() => null);
-    if (r) mostrarGravacao(r);
+    const r = await api("gravacao").catch((e) => { falhas += 1; if (falhas === 3) avisoPainel(e.message, true); return null; });
+    if (!r) {
+      if (falhas >= 3) $("deck").replaceChildren(el("p", { class: "marca", role: "alert" }, SEM_CONEXAO));
+      return;
+    }
+    falhas = 0;
+    mostrarGravacao(r);
   }, 700);
 }
 function mostrarGravacao(r) {
@@ -234,6 +248,18 @@ function desenharPronto(lista) {
     const slug = t.pasta.split(/[\\/]/).pop();
     const bloco = el("div", { class: "trab" }, el("b", {}, slug), el("small", { class: "dica" }, "Guardado em " + t.pasta),
       el("div", { class: "linha-btn" }, el("button", { class: "btn btn-principal", onclick: () => abrirVideo(slug) }, "Abrir o texto")));
+    if (p.slides) {
+      const caixa = el("div", { class: "pedido" }, el("span", { class: "dica" }, "Procurando os slides..."));
+      bloco.append(el("h3", { style: "margin-top:14px" }, "Slides com os prints"), caixa);
+      api("video/" + encodeURIComponent(slug)).then((v) => {
+        const url = (g) => comToken("arquivo/" + encodeURIComponent(slug) + "/" + encodeURIComponent(g));
+        const achados = [];
+        if (v.gerados.includes("slides.html")) achados.push(el("a", { class: "btn btn-principal", href: url("slides.html"), target: "_blank", rel: "noopener" }, "Abrir os slides"));
+        if (v.gerados.includes("slides.pdf")) achados.push(el("a", { class: "btn-mini", href: url("slides.pdf") }, "Baixar em PDF"));
+        caixa.replaceChildren(...(achados.length ? achados
+          : [el("span", { class: "dica" }, "Não saíram slides: a tela não teve trocas que eu conseguisse ler. Veja o log no Terminal (embaixo).")]));
+      }).catch(() => {});
+    }
     if (p.agentes.length) {
       const status = el("span", { class: "dica", role: "status" });
       const botoes = p.agentes.map((id) => painel.agentes.find((a) => a.id === id)).filter((a) => a && a.prompt).map((a) =>
@@ -290,7 +316,7 @@ document.querySelectorAll(".fonte").forEach((b) => {
   });
 });
 $("g-alvo").addEventListener("change", () => { $("l-janela").hidden = $("g-alvo").value !== "janela"; atualizarResumo(); });
-["g-mic", "g-perfil", "y-links", "p-objetivo"].forEach((id) => $(id).addEventListener("input", atualizarResumo));
+["g-mic", "g-perfil", "y-links", "p-objetivo", "p-slides"].forEach((id) => $(id).addEventListener("input", atualizarResumo));
 document.querySelectorAll("input[name=depois]").forEach((r) => r.addEventListener("change", atualizarResumo));
 $("p-proximo").addEventListener("click", () => {
   const problema = painel.passo === 1 ? validar().replace(/.*agente.*/, "") : "";

@@ -48,6 +48,8 @@ Duas metades, sempre separadas:
 | Comparar dois vídeos | peça ao **Comparador** |
 | Achar um termo em tudo que já foi transcrito | `vatty buscar "termo"` |
 | Legenda .srt/.vtt | `vatty legenda <pasta> --formato srt vtt` |
+| Slides com os prints de cada tela e o que foi dito | `vatty slides <pasta> --formato html pdf` |
+| O YouTube pediu "prove que não é robô" | `--cookies-navegador firefox` |
 | Vários vídeos ou uma playlist | `vatty lote lista.txt` |
 | Usar tudo pelo navegador (gravar, YouTube, agentes) | `vatty ui` |
 
@@ -430,6 +432,30 @@ a sua fala com o que a tela mostrou (perfil `app`) e escreve `pericia-<assunto>.
 Senha, token e dado de terceiros que aparecem na tela viram `[oculto]`, e ele não
 ensina a burlar licença, login ou proteção. Funciona também só com áudio, mas aí
 tudo vem da fala.
+
+## Slides com os prints: `vatty slides`
+
+Transforma um vídeo ou gravação já transcrito numa apresentação: **um slide por tela**, com o print no
+momento em que ela apareceu e **o que foi dito** enquanto ela estava aberta (no YouTube, o horário vira
+link para aquele ponto do vídeo).
+
+```bash
+vatty "https://www.youtube.com/watch?v=..." --visual aula   # primeiro, o texto e as telas
+vatty slides transcricoes/<pasta> --formato html pdf
+```
+
+O `slides.html` é um arquivo só, com as imagens dentro: abre no navegador, as setas passam os slides e dá
+para mandar para alguém. O PDF (uma página por slide) precisa do reportlab (`pip install -e ".[ata]"`).
+Precisa do visual: transcreva com `--visual aula` (ou `app`) ou grave com `--tela`. No painel, é a caixa
+"Montar slides com os prints".
+
+## YouTube pedindo "prove que não é robô"
+
+Às vezes o YouTube bloqueia o download e pede login. A Vatty pode usar o login do seu navegador (os
+cookies, lidos direto do perfil; nada é guardado): `--cookies-navegador firefox` (ou `edge`, `chrome`...).
+No painel, "Entrar como você no YouTube". O **Firefox** é o mais garantido: o Chrome no Windows protege os
+cookies e o yt-dlp às vezes não consegue ler. Atualizar o yt-dlp também ajuda:
+`pip install -U "yt-dlp[default,curl-cffi]"`.
 
 ## Mais ferramentas
 

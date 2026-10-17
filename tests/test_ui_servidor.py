@@ -120,6 +120,45 @@ class TestGravacaoNaApi(Base):
         self.srv.gravador._thread.join(5)
 
 
+class TestRobustez(Base):
+    def test_erro_inesperado_vira_500_e_fica_no_log(self):
+        with mock.patch.object(servidor.biblioteca, "listar", side_effect=RuntimeError("quebrou")):
+            status, corpo = self.chamar("/api/biblioteca")
+        self.assertEqual(status, 500)
+        log = (Path(self.tmp.name) / servidor.ARQUIVO_ERROS).read_text(encoding="utf-8")
+        self.assertIn("GET /api/biblioteca", log)
+        self.assertIn("RuntimeError: quebrou", log)
+
+    def test_link_recusado_explica_o_motivo(self):
+        status, corpo = self.chamar("/api/trabalhos", {"entradas": ["não é link"]})
+        self.assertEqual(status, 400)
+        self.assertIn("Não achei o arquivo nem entendi o link", json.loads(corpo)["recusados"][0]["erro"])
+
+    def test_porta_ocupada_abre_noutra(self):
+        from vatty.ui import app
+        portas = []
+
+        class SrvFalso:
+            url = "http://127.0.0.1:1/?t=x"
+            fila = mock.Mock()
+
+            def serve_forever(self):
+                raise KeyboardInterrupt
+
+            def server_close(self):
+                pass
+
+        def criar(raiz, porta):
+            portas.append(porta)
+            if porta == app.PORTA_PADRAO:
+                raise OSError("porta em uso")
+            return SrvFalso()
+
+        with mock.patch.object(app, "criar", criar), mock.patch("sys.stdout"):
+            self.assertEqual(app.main(["--saida", str(self.raiz), "--sem-navegador"]), 0)
+        self.assertEqual(portas, [app.PORTA_PADRAO, 0])
+
+
 class TestEventos(Base):
     def test_sse_manda_o_estado_atual_e_depois_as_mudancas(self):
         t = self.fila.adicionar("a.opus")

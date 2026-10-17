@@ -20,7 +20,8 @@ EXPORTAVEIS = {
     "csv": "text/csv; charset=utf-8", "json": "application/json; charset=utf-8",
 }
 PADROES_GERADOS = ("pontos-chave-*.md", "didatico-*.md", "ata-*.md", "ata-*.docx", "ata-*.pdf",
-                   "cartoes-*.md", "cartoes-*.csv", "pericia-*.md", "legenda.srt", "legenda.vtt", "legenda.*.srt")
+                   "cartoes-*.md", "cartoes-*.csv", "pericia-*.md", "legenda.srt", "legenda.vtt", "legenda.*.srt",
+                   "slides.html", "slides.pdf")
 
 
 class NaoAchei(Exception):

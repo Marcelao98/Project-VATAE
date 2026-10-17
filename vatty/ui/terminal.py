@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .runner import ambiente
 
-PERMITIDOS = ("buscar", "legenda", "corrigir", "ata", "cartoes", "traduzir", "perguntar")
+PERMITIDOS = ("buscar", "legenda", "slides", "corrigir", "ata", "cartoes", "traduzir", "perguntar")
 TEMPO_MAX_S = 180
 SAIDA_MAX = 20000
 

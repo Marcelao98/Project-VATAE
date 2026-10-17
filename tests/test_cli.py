@@ -196,6 +196,8 @@ class TestOutraPlataforma(unittest.TestCase):
     def test_outro_erro_nao_ganha_dica(self):
         self.assertNotIn("curl-cffi", cli._erro_download(RuntimeError("HTTP 404")))
         self.assertIn("curl-cffi", cli._erro_download(RuntimeError("Impersonate target unavailable")))
+        robo = cli._erro_download(RuntimeError("Sign in to confirm you’re not a bot. Use --cookies-from-browser"))
+        self.assertIn("--cookies-navegador firefox", robo)
 
 
 class _Tom:

@@ -112,6 +112,12 @@ apagado, para tentar de novo.
 - `aula.py`: junta `quadros`, `visual` e `ocr`: `detectar` (uma passada),
   `palpite` (OCR em até 4 slides) e `montar` (todos os slides → `visual.json`
   e `frames/`).
+- `slides.py`: `visual.json` + `frames/` + segmentos → slides (um por quadro; telas seguidas com o mesmo
+  quadro viram um; cada segmento vai para a tela aberta quando ele começou). `slides.html` com as imagens em
+  base64 (portátil) e `slides.pdf` (reportlab, A4 deitada). A interface serve o HTML com
+  `Content-Security-Policy: sandbox allow-scripts`: abre na aba, mas sem acesso à API.
+- `fonte.py` lê `VATTY_COOKIES_NAVEGADOR` (a CLI preenche com `--cookies-navegador`) e passa
+  `cookiesfrombrowser` ao yt-dlp, para quando o YouTube pede login.
 - `audio.py`: arquivo → array float32 mono 16 kHz via ffmpeg (aceita um filtro `-af`).
 - `diarizar.py`: separação de falantes, lógica pura (o modelo de voz entra por parâmetro). Janelas de
   2 s → vetores → `agrupar` (average linkage, corte por similaridade ou N fixo) ou `reconhecer` (perfis);

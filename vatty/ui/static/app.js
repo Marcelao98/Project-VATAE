@@ -18,10 +18,18 @@ function el(tag, attrs = {}, ...filhos) {
   return n;
 }
 
+const SEM_CONEXAO = "Perdi a conexão com a Vatty. A janela preta dela ainda está aberta? Se fechou, abra o abrir-vatty.bat de novo. "
+  + "Se estiver aberta, feche as outras abas da Vatty e recarregue esta página.";
 async function api(caminho, opcoes = {}) {
-  const r = await fetch("/api/" + caminho, { ...opcoes, headers: { "X-Vatty-Token": TOKEN, ...(opcoes.headers || {}) } });
+  let r;
+  try {
+    r = await fetch("/api/" + caminho, { ...opcoes, headers: { "X-Vatty-Token": TOKEN, ...(opcoes.headers || {}) } });
+  } catch (_) {
+    throw new Error(SEM_CONEXAO);  // "Failed to fetch": o servidor fechou ou caiu
+  }
   const dados = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(dados.erro || "Algo deu errado (" + r.status + ").");
+  if (r.status === 401) throw new Error("Esta aba é de uma Vatty antiga. Use a aba que abriu por último (ou o endereço que a janela preta mostra).");
+  if (!r.ok) throw new Error(dados.erro || (dados.recusados || []).map((x) => x.erro).join(" ") || "Algo deu errado (" + r.status + ").");
   return dados;
 }
 const post = (c, corpo) => api(c, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo || {}) });

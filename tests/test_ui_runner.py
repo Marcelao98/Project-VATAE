@@ -50,6 +50,11 @@ class TestMontarArgv(unittest.TestCase):
         self.assertNotIn("--falantes", argv)
         self.assertNotIn("--lang", argv)
 
+    def test_login_do_navegador_so_se_for_conhecido(self):
+        argv = runner.montar_argv("https://youtu.be/x", {"cookies": "firefox"}, "t")
+        self.assertEqual(argv[argv.index("--cookies-navegador") + 1], "firefox")
+        self.assertNotIn("--cookies-navegador", runner.montar_argv("https://youtu.be/x", {"cookies": "--x"}, "t"))
+
     def test_arquivo_inexistente(self):
         with self.assertRaises(runner.EntradaInvalida):
             runner.montar_argv("/nao/existe.opus", {}, "t")
@@ -118,6 +123,16 @@ class TestExecutar(unittest.TestCase):
             self.assertEqual(chamadas[1][:2], ["claude", "-p"])
             self.assertIn("Erro dos agentes: Not logged in", t.log)
             self.assertTrue(any(l.startswith("Aviso: os agentes não terminaram") for l in t.log))
+
+    def test_slides_pedidos_sem_visual_viram_aviso_e_nao_erro(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            proc = ProcFalso(f"Pronto em 0:42 (texto de whisper, 180s de áudio): {pasta}\n".encode())
+            fila = f.Fila(lambda t, c: runner.executar(t, c, "transcricoes", popen=lambda *a, **k: proc))
+            with tempfile.NamedTemporaryFile() as arq:
+                t = fila.adicionar(arq.name, {"slides": True})
+                fila.processar_um()
+            self.assertEqual(t.estado, f.PRONTO)
+            self.assertTrue(any(l.startswith("Aviso: sem slides") for l in t.log))
 
     def test_cancelar_derruba_o_processo(self):
         t, proc = rodar(b"Transcrevendo...\nmais uma\n", cancelar_antes=True)

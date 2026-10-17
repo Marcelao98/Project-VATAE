@@ -133,13 +133,14 @@ class _Faixa:
 
 
 def gravar(entradas, pasta, *, duracao_max=None, relogio=time.monotonic, dormir=time.sleep,
-           progresso=None, agora=time.time) -> Gravacao:
+           progresso=None, agora=time.time, parar=None) -> Gravacao:
     """
     Grava até `duracao_max` segundos ou até Ctrl+C (KeyboardInterrupt), o que vier
     primeiro. `entradas` é uma lista de objetos com `nome`, `taxa`, `canais`,
     `pegar()` (bytes int16 que chegaram, sem bloquear) e `fechar()`. Os .wav
     ficam em `pasta`, um por entrada. `progresso(decorrido_s, {nome: pico})`
-    é chamado a cada passo. `inicio` do resultado é o horário real (`agora()`) em
+    é chamado a cada passo. `parar()` devolvendo True encerra como o Ctrl+C (a
+    interface usa isso). `inicio` do resultado é o horário real (`agora()`) em
     que o relógio das faixas começou: todas as faixas de áudio partem dele juntas.
     """
     pasta = Path(pasta)
@@ -167,7 +168,7 @@ def gravar(entradas, pasta, *, duracao_max=None, relogio=time.monotonic, dormir=
             decorrido = relogio() - inicio
             ultimo = duracao_max is not None and decorrido >= duracao_max
             passo(duracao_max if ultimo else decorrido)
-            if ultimo:
+            if ultimo or (parar is not None and parar()):
                 break
     except KeyboardInterrupt:
         passo(relogio() - inicio)

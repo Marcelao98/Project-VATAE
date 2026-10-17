@@ -87,6 +87,17 @@ class TestExecutar(unittest.TestCase):
         t, _ = rodar(b"Transcrevendo...\n")
         self.assertEqual(t.estado, f.ERRO)
 
+    def test_pedido_de_agente_fica_anotado_na_pasta(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            proc = ProcFalso(f"Pronto em 0:42 (texto de whisper, 180s de áudio): {pasta}\n".encode())
+            fila = f.Fila(lambda t, c: runner.executar(t, c, "transcricoes", popen=lambda *a, **k: proc))
+            with tempfile.NamedTemporaryFile() as arq:
+                t = fila.adicionar(arq.name, {"agentes": ["escrivao"], "objetivo": "juros"})
+                fila.processar_um()
+            self.assertEqual(t.estado, f.PRONTO)
+            self.assertTrue((Path(pasta) / "pedidos.json").is_file())
+            self.assertTrue(any("faz os pedidos da Vatty" in l for l in t.log))
+
     def test_cancelar_derruba_o_processo(self):
         t, proc = rodar(b"Transcrevendo...\nmais uma\n", cancelar_antes=True)
         self.assertEqual(t.estado, f.CANCELADO)

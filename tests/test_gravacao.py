@@ -90,6 +90,10 @@ class TestGravar(unittest.TestCase):
     def gravar(self, entradas, **opcoes):
         return gravacao.gravar(entradas, self.pasta, relogio=self.relogio, dormir=self.relogio.dormir, **opcoes)
 
+    def test_parar_encerra_e_guarda_o_que_gravou(self):
+        g = self.gravar([EntradaFalsa(self.relogio)], parar=lambda: self.relogio.agora >= 1.0)
+        self.assertAlmostEqual(g.duracao_s, 1.0)
+
     def test_guarda_o_horario_real_do_comeco(self):
         g = self.gravar([EntradaFalsa(self.relogio)], duracao_max=1.0, agora=lambda: 1760000000.5)
         self.assertEqual(g.inicio, 1760000000.5)

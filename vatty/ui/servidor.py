@@ -17,7 +17,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .. import buscar as _buscar
-from . import biblioteca, prompts, revisao, runner, saude, terminal
+from . import biblioteca, gravador as _gravador, pedidos, prompts, revisao, runner, saude, terminal
 
 ESTATICOS = Path(__file__).parent / "static"
 UPLOAD_MAX = 8 * 1024 ** 3
@@ -34,10 +34,12 @@ def nome_seguro(nome: str) -> str:
 class Servidor(ThreadingHTTPServer):
     daemon_threads = True
 
-    def __init__(self, endereco, raiz, fila, token=None, uploads=None, handler=None):
+    def __init__(self, endereco, raiz, fila, token=None, uploads=None, handler=None, gravador=None):
         super().__init__(endereco, handler or Handler)
         self.raiz = Path(raiz)
         self.fila = fila
+        # as gravações ficam ao lado das transcrições (gravacoes/ e transcricoes/), como na CLI
+        self.gravador = gravador or _gravador.Gravador(self.raiz.resolve().parent / "gravacoes", fila)
         self.token = token or secrets.token_urlsafe(18)
         self.uploads = Path(uploads) if uploads else Path(tempfile.gettempdir()) / "vatty-uploads"
         self.uploads.mkdir(parents=True, exist_ok=True)
@@ -82,8 +84,10 @@ class Handler(BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length") or 0)
         if n > CORPO_JSON_MAX:
             raise ValueError("Corpo grande demais.")
+        bruto = self.rfile.read(n)
+        self._corpo_lido = True
         try:
-            dados = json.loads(self.rfile.read(n) or b"{}")
+            dados = json.loads(bruto or b"{}")
         except ValueError:
             raise ValueError("JSON inválido.")
         if not isinstance(dados, dict):
@@ -106,7 +110,14 @@ class Handler(BaseHTTPRequestHandler):
         self._rotear("GET")
 
     def do_POST(self):
+        self._corpo_lido = False
         self._rotear("POST")
+        if not self._corpo_lido:  # rota que não usa o corpo: ele não pode sobrar na conexão (viraria "{}GET")
+            n = int(self.headers.get("Content-Length") or 0)
+            if 0 < n <= CORPO_JSON_MAX:
+                self.rfile.read(n)
+            elif n:
+                self.close_connection = True
 
     def _rotear(self, metodo: str) -> None:
         if not self._host_ok():
@@ -161,6 +172,14 @@ class Handler(BaseHTTPRequestHandler):
             return
         if metodo == "GET" and p[0] == "arquivo" and len(p) == 3:
             return self._arquivo(biblioteca.arquivo_gerado(s.raiz, p[1], p[2]), nome=p[2])
+        if metodo == "GET" and p == ["agentes"]:
+            return self._json(pedidos.lista())
+        if metodo == "GET" and p == ["gravacao"]:
+            return self._json(s.gravador.resumo())
+        if metodo == "POST" and p == ["gravacao"]:
+            return self._json(s.gravador.iniciar(self._corpo_json()))
+        if metodo == "POST" and p == ["gravacao", "parar"]:
+            return self._json(s.gravador.parar())
         if metodo == "GET" and p == ["prompts"]:
             return self._json(prompts.tipos())
         if metodo == "GET" and p[0] == "video" and len(p) == 3 and p[2] == "prompt":
@@ -227,6 +246,7 @@ class Handler(BaseHTTPRequestHandler):
                     break
                 f.write(bloco)
                 restante -= len(bloco)
+        self._corpo_lido = True
         if restante:
             destino.unlink(missing_ok=True)
             raise ValueError("Envio interrompido.")

@@ -11,6 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from . import pedidos
 from .fila import Cancelado
 
 OPCOES_TEXTO = ("legenda", "whisper")
@@ -139,4 +140,8 @@ def executar(trabalho, ctx, saida, popen=subprocess.Popen) -> str:
         raise RuntimeError(ultima_erro or f"A Vatty terminou com código {codigo}.")
     if not pasta:
         raise RuntimeError("A Vatty terminou sem dizer onde guardou o resultado.")
+    anotados = pedidos.registrar(pasta, opcoes.get("agentes"), opcoes.get("objetivo", ""))
+    if anotados:
+        ctx.log("Pedido anotado para: " + ", ".join(pedidos.AGENTES[a][0] for a in anotados)
+                + ". No Claude Code, diga: faz os pedidos da Vatty.")
     return pasta

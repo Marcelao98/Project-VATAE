@@ -459,6 +459,8 @@ def _argumentos_gravar(argv):
                         "testar um programa; 'aula' só os slides que ficam parados")
     p.add_argument("--duracao", type=float, metavar="SEGUNDOS", help="para sozinho depois desse tempo (bom para testar: 5)")
     p.add_argument("--gravacoes", type=Path, default=Path("gravacoes"), help="onde guardar os .wav (padrão: gravacoes/)")
+    p.add_argument("--parar-com", dest="parar_com", type=Path, metavar="ARQUIVO",
+                   help="para a gravação quando este arquivo aparecer (é como a interface aperta o 'Parar')")
     _opcoes_comuns(p)
     return p.parse_args(argv)
 
@@ -505,7 +507,8 @@ def _main_gravar(argv) -> int:
         for e in entradas:
             print(f"  {e.nome}: {getattr(e, 'descricao', '')}")
         print("Gravando. Ctrl+C para parar." if args.duracao is None else f"Gravando por {args.duracao:g}s.")
-        resultado = gravacao.gravar(entradas, destino, duracao_max=args.duracao, progresso=_mostrar_gravando)
+        parar = (lambda: args.parar_com.exists()) if args.parar_com else None
+        resultado = gravacao.gravar(entradas, destino, duracao_max=args.duracao, progresso=_mostrar_gravando, parar=parar)
     except (gravacao.ErroGravacao, tela.ErroTela) as e:
         if com_tela:
             _desfazer_tela(captura, destino)

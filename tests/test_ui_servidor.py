@@ -75,6 +75,16 @@ class TestTrabalhos(Base):
         self.assertEqual((status, len(dados["criados"]), len(dados["recusados"])), (200, 1, 2))
         self.assertEqual(json.loads(self.chamar("/api/estado")[1])["trabalhos"][0]["estado"], "fila")
 
+    def test_corpo_que_a_rota_nao_le_nao_sobra_na_conexao(self):
+        import http.client
+        con = http.client.HTTPConnection("127.0.0.1", self.srv.server_address[1], timeout=5)
+        cab = {"X-Vatty-Token": "segredo", "Content-Type": "application/json"}
+        con.request("POST", "/api/trabalhos/nao-existe/cancelar", body="{}", headers=cab)
+        con.getresponse().read()
+        con.request("GET", "/api/estado", headers=cab)  # mesma conexão: antes chegava como "{}GET" e dava 501
+        self.assertEqual(con.getresponse().status, 200)
+        con.close()
+
     def test_lista_vazia_e_400(self):
         self.assertEqual(self.chamar("/api/trabalhos", {"entradas": []})[0], 400)
 
@@ -91,6 +101,23 @@ class TestTrabalhos(Base):
         self.assertEqual(caminho.parent, self.srv.uploads)
         self.assertEqual(caminho.read_bytes(), b"abc")
         self.assertEqual(servidor.nome_seguro("../../x/y.opus"), "y.opus")
+
+
+class TestGravacaoNaApi(Base):
+    def test_agentes_e_gravar_parar(self):
+        from vatty.ui import gravador
+        from test_ui_gravador import ProcFalso
+        proc = ProcFalso()
+        self.srv.gravador = gravador.Gravador(Path(self.tmp.name) / "gravacoes", self.fila, popen=proc,
+                                              pasta_temporaria=self.tmp.name)
+        status, corpo = self.chamar("/api/agentes")
+        self.assertIn("perito", [a["id"] for a in json.loads(corpo)])
+        self.assertEqual(json.loads(self.chamar("/api/gravacao")[1])["estado"], "parado")
+        self.assertEqual(json.loads(self.chamar("/api/gravacao", {"microfone": True})[1])["estado"], "gravando")
+        self.assertEqual(json.loads(self.chamar("/api/gravacao/parar", {})[1])["estado"], "parando")
+        self.assertEqual(self.chamar("/api/gravacao/parar", {})[0], 400)  # já está parando
+        proc.escrever("Gravado: 0:01 em x\n", fechar=True)
+        self.srv.gravador._thread.join(5)
 
 
 class TestEventos(Base):

@@ -51,6 +51,11 @@ Duas metades, sempre separadas:
 | Vários vídeos ou uma playlist | `vatty lote lista.txt` |
 | Usar tudo pelo navegador (gravar, YouTube, agentes) | `vatty ui` |
 
+## O jeito mais fácil (Windows)
+
+Clique duas vezes em **`abrir-vatty.bat`**, na pasta do projeto. Na primeira vez ele prepara tudo sozinho
+(leva uns minutos); depois, só abre o painel no navegador. Precisa só do Python 3.14 e do ffmpeg instalados.
+
 ## Instalação
 
 Requer **Python 3.14** e o **ffmpeg** no PATH. Para gravar a tela inteira com pouca

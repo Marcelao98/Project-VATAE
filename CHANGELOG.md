@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.17.0 — 2026-10-17
+
+Painel "Começar" no `vatty ui`.
+
+- **Painel da Vatty**, a primeira aba: gravar áudio, gravar tela e áudio ou puxar do YouTube; depois só
+  transcrever e guardar (local) ou pedir aos agentes. Três modos: **Passo a passo** (padrão), **Bancada** e
+  **Estúdio** (gravador com tempo e nível de cada faixa). O modo escolhido fica guardado no navegador.
+- **Gravar pela interface**: `vatty/ui/gravador.py` roda `vatty gravar` em segundo plano; o "Parar" cria um
+  arquivo vigiado (`vatty gravar --parar-com ARQUIVO`, novo) e a transcrição entra na fila sozinha, com o perfil
+  de tela escolhido. Fechar e reabrir a página reencontra a gravação.
+- **Pedidos aos agentes** sem IA no Python: `pedidos.json` na pasta do vídeo, feito pela conversa do Claude Code
+  ("faz os pedidos da Vatty"); "copiar prompt" de cada agente na tela de pronto.
+- Corrigido: POST cujo corpo a rota não lia (Parar, Cancelar, Tentar de novo) deixava o corpo na conexão, e a
+  requisição seguinte chegava como `{}GET` (erro 501).
+- 533 testes (eram 524). Conferido no Chromium da nuvem com uma gravação falsa nos três modos, no celular
+  (390 px) e no tema claro, sem erro no console. **Não verificado**: gravar de verdade pelo painel no Windows.
+
 ## 0.16.0 — 2026-10-13
 
 Gravação da tela junto com o áudio, perfil `app` para quem testa programa e o agente Perito.

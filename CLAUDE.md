@@ -65,6 +65,7 @@ duas metades compartilham:
 | `_consultas/<pergunta>/trechos.md`, `resposta.md` | código, Consulta | `vatty perguntar` escolhe os trechos; o agente responde só com eles |
 | `_comparacoes/comparacao-<a>-<b>.md` | Comparador | só o agente, lendo duas pastas |
 | `pericia-<assunto>.md` | Perito | laudo de uma gravação de teste de programa (de preferência com `--tela`): seções `## Resumo/Bugs/Lentidão e espera/Atrito/Comportamento observado/Para reproduzir/Dúvidas`; bug como `[mm:ss] o que \| evidência \| gravidade \| certeza` |
+| `pedidos.json` | Painel (código) | só quando o painel pediu agentes: lista de `{agente, objetivo, pedido_em, estado}` (`pendente`/`feito`); ver "Pedidos do painel" |
 | `ata-<assunto>.docx`, `.pdf` | Ata (código) | `vatty ata <pasta>`: cabeçalho (data, duração, participantes) vindo de `fonte.json`/`falantes.json`, mais o `.md` do agente, com `Pessoa N` trocada pelos nomes dados |
 
 `origem` diz de onde veio o texto: `legenda-manual`, `legenda-automatica` ou
@@ -82,6 +83,13 @@ prontos, ordenados pelo início, na linha do tempo. Assim a fala de um lado
 nunca parte a frase do outro. Gravação com uma faixa só, YouTube e arquivo
 ficam como sempre: um `transcricao.txt` só, e `Eu:` na frente quando há
 `falante`.
+
+**Pedidos do painel.** O painel (`vatty ui`, aba Começar) nunca chama IA: quando a pessoa escolhe
+"pedir aos agentes", o código anota em `pedidos.json` na pasta do vídeo. Quando ela disser "faz os
+pedidos da Vatty", a conversa principal procura `transcricoes/*/pedidos.json` com `estado: pendente`,
+monta o briefing de cada um (pasta, `objetivo` como foco/nível/o que foi testado, extensão `medio`,
+arquivo de saída, data; o Tradutor ainda precisa do idioma, então pergunte), chama o agente e, no fim,
+troca o `estado` para `feito` e acrescenta `arquivo` com o que foi escrito.
 
 O áudio baixado é temporário e apagado depois da transcrição (não guardar
 mídia). Os agentes citam trechos pelo horário (`[12:34]`), que vem do
@@ -141,9 +149,12 @@ Regra: **testar comportamento, não linhas.** Pouco teste bom vale mais que muit
 10. Gravação da tela junto com o áudio (`vatty gravar --tela`, Windows; `ddagrab`, `gdigrab` na janela) e perfil
     `app` do visual → eventos da tela na linha do tempo da fala.
     **(feito, falta confirmar a captura e a sincronia num Windows real)** Fora por enquanto: pausar,
-    Mac/Linux, botão na interface, print "no momento da fala".
+    Mac/Linux, print "no momento da fala" (o botão na interface veio no item 12).
 11. Perito: laudo de teste de programa (bugs, lentidão, atrito, comportamento) a partir da gravação
     com tela. **(feito; nunca rodado de verdade)**
+12. Painel "Começar" no `vatty ui`: gravar áudio, gravar tela e áudio ou puxar do YouTube, e só guardar ou
+    anotar pedido para os agentes; modos Passo a passo (padrão), Bancada e Estúdio. **(feito; conferido na
+    nuvem com gravação falsa, falta gravar de verdade pelo painel no Windows)**
 
 ## Comandos
 

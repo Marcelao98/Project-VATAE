@@ -239,6 +239,13 @@ compara dois vídeos). Não criar agente novo sem necessidade real.
   (limites -1,0 / 0,6 / 2,4, os padrões do Whisper, **não calibrados** com áudio real). O `motor` grava o
   motivo em `Segmento.duvidoso`; `texto.py` põe ` [?]` depois do trecho. Legenda do YouTube não tem esses
   números, então não marca. Escrivão e Secretário listam esses trechos em "trechos que a transcrição errou".
+- `ui/` (`vatty ui`), painel "Começar": `gravador.py` roda `vatty gravar --parar-com ARQUIVO` em segundo plano
+  (uma gravação por vez), lê o medidor da CLI (tempo e nível por faixa) e, ao parar, põe a pasta na fila com
+  `visual` app/aula se teve tela; o "Parar" só cria o arquivo vigiado, sem sinal, igual em qualquer sistema.
+  `pedidos.py` anota os agentes pedidos em `pedidos.json` quando o trabalho termina (o `runner` chama), sem IA.
+  Front: `painel.js`/`painel.css`, as mesmas peças (fonte, depois, ouvindo, pronto, resumo) em três arranjos
+  por `data-modo` (passos, bancada, estudio); o modo fica no `localStorage`. O servidor descarta o corpo de
+  um POST que a rota não leu (sobrava na conexão e a próxima requisição chegava como `{}GET`).
 - `ui/` (`vatty ui`): `servidor.py` (HTTP local, token, Host, SSE), `fila.py` (fila pura de um worker),
   `runner.py` (roda `python -m vatty.cli` por subprocesso, só opções conhecidas; UTF-8 e sem buffer),
   `terminal.py` (só subcomandos `vatty`, caminhos dentro da raiz), `biblioteca.py` (lista, leitor, exportar;

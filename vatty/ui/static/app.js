@@ -116,6 +116,7 @@ function desenharFila() {
   const barra = $("barra-geral");
   barra.style.setProperty("--p", (rodando ? rodando.progresso : lista.length && !ativos.length ? 100 : 0) + "%");
   $("resumo-fila").textContent = rodando ? nomeCurto(rodando.entrada) + ": " + rodando.etapa : ativos.length ? ativos.length + " esperando." : "Nada na fila.";
+  if (window.aoMudarFila) window.aoMudarFila();  // o painel "Começar" acompanha os trabalhos dele
 }
 async function verLog(id) {
   estado.logAtivo = id;

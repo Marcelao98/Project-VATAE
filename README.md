@@ -49,7 +49,7 @@ Duas metades, sempre separadas:
 | Achar um termo em tudo que já foi transcrito | `vatty buscar "termo"` |
 | Legenda .srt/.vtt | `vatty legenda <pasta> --formato srt vtt` |
 | Vários vídeos ou uma playlist | `vatty lote lista.txt` |
-| Usar tudo pelo navegador | `vatty ui` |
+| Usar tudo pelo navegador (gravar, YouTube, agentes) | `vatty ui` |
 
 ## Instalação
 
@@ -440,7 +440,13 @@ vatty ui                                      # interface no navegador
 `lote-relatorio.json`. Sem terminal para perguntar, usa `--texto whisper` e
 `--preprocessar nao` (mude com as flags).
 
-**Interface (`vatty ui`):** abre `http://127.0.0.1:8765` com um token. Importe
+**Interface (`vatty ui`):** abre `http://127.0.0.1:8765` com um token. A primeira aba, **Começar**, é o painel
+da Vatty: escolha **gravar áudio**, **gravar tela e áudio** ou **puxar do YouTube**, depois **só transcrever e
+guardar** (100% no seu PC) ou **pedir aos agentes** (ela anota o pedido na pasta; no Claude Code, diga "faz os
+pedidos da Vatty", ou use os botões "copiar prompt"). O gravador mostra o tempo e o nível de cada faixa, e o
+"Parar" já manda transcrever. Três jeitos de ver, no canto: **Passo a passo** (padrão, guiado), **Bancada**
+(tudo numa tela) e **Estúdio** (o gravador no centro, os agentes do lado). Pode fechar a aba durante a
+gravação: ao voltar, o painel reencontra o gravador. Nas outras abas: importe
 arquivos (arrastar) ou cole links, acompanhe a fila, procure em tudo, leia com
 horário, corrija palavras (e guarde como regra do glossário), dê nome às pessoas,
 exporte (`.txt .md .srt .vtt .csv .json`) e use "copiar prompt" (pontos-chave,

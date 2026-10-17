@@ -1,0 +1,137 @@
+/* Painel "Começar": as mesmas peças (fonte, depois, ouvindo, pronto, resumo) em três arranjos.
+   data-modo = passos | bancada | estudio; data-passo = 1..4 (só no passo a passo);
+   data-fase = escolher | ouvindo | pronto. Cores e componentes vêm de tokens.css. */
+
+.painel-vatty { gap: 16px; }
+.p-topo { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+.p-fala { display: flex; gap: 14px; align-items: center; min-width: 0; flex: 1 1 420px; }
+.p-fala img { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; object-position: 50% 10%;
+  border: 3px dashed var(--costura); flex: none; }
+.balao { position: relative; background: var(--remendo); border: 2px solid var(--ouvido); border-radius: 16px; padding: 12px 16px; min-width: 0; }
+.balao::before { content: ""; position: absolute; left: -11px; top: 26px; border: 10px solid transparent; border-right-color: var(--ouvido); border-left: 0; }
+.balao h2 { font-size: var(--t1); margin: 0 0 4px; }
+.balao p { margin: 0; font-size: var(--t-1); color: var(--papel-2); }
+
+.modos { display: flex; gap: 4px; background: var(--bancada); border: 2px dashed var(--fio-vazio); border-radius: 999px; padding: 4px; }
+.modos button { font: 650 var(--t-1)/1 var(--fonte); color: var(--papel-2); background: transparent; border: 0; border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+.modos button[aria-pressed="true"] { background: var(--ouvido); color: var(--sobre-ouvido); }
+
+.trilha { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; counter-reset: passo; }
+.trilha li { counter-increment: passo; border-top: 4px solid var(--fio-vazio); padding: 8px 4px 0; font: 650 var(--t-1)/1.3 var(--fonte); color: var(--papel-2); }
+.trilha li::before { content: counter(passo) ". "; }
+.trilha li.feito { border-color: var(--costura); }
+.trilha li.at { border-color: var(--ouvido); color: var(--papel); }
+
+.p-corpo { display: grid; gap: 16px; align-items: start; }
+.bloco h3 { margin-bottom: 12px; }
+
+/* Fontes: três cartões que funcionam como rádio */
+.fontes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.fonte { display: grid; gap: 6px; align-content: start; text-align: left; font: inherit; color: var(--papel); cursor: pointer;
+  background: var(--oficina); border: 2px dashed var(--fio-vazio); border-radius: var(--raio); padding: 16px; }
+.fonte:hover { border-color: var(--ouvido); }
+.fonte[aria-checked="true"] { border: 2px solid var(--costura); background: var(--remendo); }
+.fonte .ic { width: 26px; height: 26px; stroke: var(--ouvido); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fonte b { font-size: var(--t1); } .fonte small { color: var(--papel-2); font-size: var(--t-1); }
+.detalhe { margin-top: 6px; }
+.detalhe input:not([type]), .objetivo input { width: 100%; font: inherit; color: var(--papel); background: var(--oficina); border: 2px solid var(--fio-vazio); border-radius: var(--raio-p); padding: 10px 12px; }
+
+/* Depois: duas escolhas e os agentes */
+.escolhas { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.escolha { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; margin: 0; cursor: pointer;
+  background: var(--oficina); border: 2px solid var(--fio-vazio); border-radius: 12px; padding: 12px 14px; }
+.escolha:has(input:checked) { border-color: var(--ouvido); }
+.escolha input { accent-color: var(--ouvido); margin-top: 4px; }
+.escolha b { display: block; } .escolha small { color: var(--papel-2); font-size: var(--t-1); }
+.agentes { border: 0; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.agentes:disabled { opacity: .45; }
+.agente { display: inline-flex; gap: 6px; align-items: center; margin: 0; font: 600 var(--t-1)/1 var(--fonte); cursor: pointer;
+  padding: 8px 12px; border-radius: 999px; border: 1px solid var(--fio-vazio); background: var(--remendo); }
+.agente:has(input:checked) { background: var(--ouvido); color: var(--sobre-ouvido); border-color: transparent; }
+.agente input { accent-color: var(--costura); }
+.agente small { font-weight: 400; opacity: .8; }
+.objetivo { margin: 12px 0 0; } .objetivo small { font-weight: 400; color: var(--papel-2); }
+
+/* Resumo do pedido e botões */
+.p-resumo dl { margin: 0 0 10px; }
+.p-resumo dl div { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--fio-vazio); font-size: var(--t-1); }
+.p-resumo dt { color: var(--papel-2); } .p-resumo dd { margin: 0; font-weight: 650; text-align: right; overflow-wrap: anywhere; }
+.p-botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.p-botoes .btn { flex: 1 1 auto; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Deck: o gravador */
+.deck .rec { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.bola { width: 72px; height: 72px; border-radius: 50%; flex: none; display: grid; place-items: center; font: 900 var(--t-1)/1 var(--fonte);
+  background: var(--fio-vazio); color: var(--papel); border: 0; }
+button.bola { cursor: pointer; background: var(--fone); color: #2a0614; }
+.gravando .bola { background: var(--fone); color: #2a0614; box-shadow: 0 0 0 6px color-mix(in srgb, var(--fone) 25%, transparent); animation: pulso 1.6s ease-in-out infinite; }
+@keyframes pulso { 50% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--fone) 10%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .gravando .bola { animation: none; } }
+.tempo { font: 700 var(--t3)/1 var(--mono); }
+.estado-rec { font-weight: 700; color: var(--fone); }
+.deck .rec .btn { margin-left: auto; }
+.faixas { display: grid; gap: 10px; margin-top: 16px; }
+.faixa { display: grid; grid-template-columns: 110px minmax(0, 1fr) 54px; gap: 12px; align-items: center; font-size: var(--t-1); }
+.medidor { height: 14px; border-radius: 7px; overflow: hidden;
+  background: repeating-linear-gradient(90deg, var(--fio-vazio) 0 6px, transparent 6px 9px); }
+.medidor i { display: block; height: 100%; width: var(--n, 0%); transition: width .2s;
+  background: repeating-linear-gradient(90deg, var(--ouvido) 0 6px, transparent 6px 9px); }
+.deck .log { margin-top: 12px; font: 400 var(--t-1)/1.5 var(--mono); color: var(--papel-2); }
+.trab { display: grid; gap: 6px; margin-top: 10px; }
+
+/* Pronto */
+.pedido { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+.comando-claude { font-family: var(--mono); background: var(--oficina); border: 1px solid var(--ouvido); border-radius: 6px; padding: 2px 8px; }
+
+/* ---------- Passo a passo: uma etapa por vez, resumo do lado ---------- */
+[data-modo="passos"] .p-corpo { grid-template-columns: minmax(0, 1fr) 280px; }
+[data-modo="passos"] .bloco { display: none; grid-column: 1; grid-row: 1; }
+[data-modo="passos"][data-passo="1"] [data-bloco="fonte"],
+[data-modo="passos"][data-passo="2"] [data-bloco="depois"],
+[data-modo="passos"][data-passo="3"] [data-bloco="ouvindo"],
+[data-modo="passos"][data-passo="4"] [data-bloco="pronto"] { display: block; }
+[data-modo="passos"] .p-resumo { grid-column: 2; grid-row: 1; }
+[data-modo="passos"]:not([data-fase="escolher"]) .p-resumo { display: none; }
+[data-modo="passos"]:not([data-fase="escolher"]) .p-corpo { grid-template-columns: minmax(0, 1fr); }
+[data-modo="passos"] #p-comecar { display: none; }
+[data-modo="passos"][data-passo="2"] #p-comecar { display: inline-block; }
+[data-modo="passos"][data-passo="2"] #p-proximo, [data-modo="passos"][data-passo="1"] #p-voltar { display: none; }
+
+/* ---------- Bancada: tudo numa tela ---------- */
+[data-modo="bancada"] .trilha, [data-modo="estudio"] .trilha { display: none; }
+[data-modo="bancada"] .p-corpo { grid-template-columns: minmax(0, 1fr); }
+[data-modo="bancada"] #p-voltar, [data-modo="bancada"] #p-proximo, [data-modo="bancada"] .p-resumo h3,
+[data-modo="bancada"] .p-resumo dl { display: none; }
+[data-modo="bancada"] .p-resumo { display: flex; align-items: center; gap: 14px; flex-wrap: wrap-reverse; }
+[data-modo="bancada"] .p-resumo .p-botoes { flex: none; }
+[data-modo="bancada"] .p-resumo .dica { margin: 0; flex: 1 1 260px; }
+[data-modo="bancada"][data-fase="escolher"] [data-bloco="ouvindo"],
+[data-modo="bancada"]:not([data-fase="pronto"]) [data-bloco="pronto"],
+[data-modo="estudio"]:not([data-fase="pronto"]) [data-bloco="pronto"] { display: none; }
+[data-modo="bancada"]:not([data-fase="escolher"]) .p-resumo { display: none; }
+
+/* ---------- Estúdio: o gravador no centro, os agentes do lado ---------- */
+[data-modo="estudio"] .p-corpo { grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-areas: "fonte depois" "ouvindo depois" "pronto depois"; }
+[data-modo="estudio"] [data-bloco="fonte"] { grid-area: fonte; }
+[data-modo="estudio"] [data-bloco="ouvindo"] { grid-area: ouvindo; border: 2px solid var(--costura); }
+[data-modo="estudio"] [data-bloco="pronto"] { grid-area: pronto; }
+[data-modo="estudio"] [data-bloco="depois"] { grid-area: depois; }
+[data-modo="estudio"] .p-resumo { display: none; }
+[data-modo="estudio"] .fonte { grid-template-columns: auto 1fr; align-items: center; padding: 10px 12px; }
+[data-modo="estudio"] .fonte small { display: none; }
+[data-modo="estudio"] .fonte b { font-size: var(--t0); }
+[data-modo="estudio"] .escolhas { grid-template-columns: 1fr; }
+[data-modo="estudio"] .agentes { flex-direction: column; }
+[data-modo="estudio"] .agente { justify-content: space-between; border-radius: 10px; padding: 10px 12px; }
+
+@media (max-width: 860px) {
+  .p-corpo, [data-modo] .p-corpo { grid-template-columns: minmax(0, 1fr) !important; grid-template-areas: none !important; }
+  [data-modo] .bloco, [data-modo] .p-resumo { grid-column: auto !important; grid-row: auto !important; grid-area: auto !important; }
+  .fontes { grid-template-columns: 1fr; }
+  .faixa { grid-template-columns: 80px minmax(0, 1fr); } .faixa span:last-child { display: none; }
+  .deck .rec .btn { margin-left: 0; }
+}
+[data-modo="estudio"] .agente small { margin-left: auto; }
+@media (max-width: 860px) { .lateral { order: 2; } }  /* no celular o painel vem antes da arte */

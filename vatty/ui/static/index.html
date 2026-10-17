@@ -7,6 +7,7 @@
 <link rel="icon" href="/static/vatty-avatar.jpg">
 <link rel="stylesheet" href="/static/tokens.css">
 <link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/painel.css">
 </head>
 <body>
 <div class="app">
@@ -31,13 +32,106 @@
 
   <main class="principal">
     <nav class="abas" role="tablist" aria-label="Seções">
-      <button role="tab" data-aba="importar" aria-selected="true">Importar</button>
+      <button role="tab" data-aba="comecar" aria-selected="true">Começar</button>
+      <button role="tab" data-aba="importar" aria-selected="false">Importar</button>
       <button role="tab" data-aba="fila" aria-selected="false">Fila <span class="contador" id="c-fila" hidden>0</span></button>
       <button role="tab" data-aba="biblioteca" aria-selected="false">Biblioteca</button>
       <button role="tab" data-aba="leitor" aria-selected="false" id="aba-leitor" hidden>Leitor</button>
     </nav>
 
-    <section id="aba-importar" class="aba" role="tabpanel">
+    <section id="aba-comecar" class="aba painel-vatty" role="tabpanel" data-modo="passos" data-passo="1" data-fase="escolher">
+      <div class="p-topo">
+        <div class="p-fala">
+          <img src="/static/vatty-avatar.jpg" alt="">
+          <div class="balao" aria-live="polite"><h2 id="fala-titulo">Me diz de onde vem o som.</h2><p id="fala-texto"></p></div>
+        </div>
+        <div class="modos" role="group" aria-label="Jeito de ver o painel">
+          <button type="button" data-modo="passos" aria-pressed="true">Passo a passo</button>
+          <button type="button" data-modo="bancada" aria-pressed="false">Bancada</button>
+          <button type="button" data-modo="estudio" aria-pressed="false">Estúdio</button>
+        </div>
+      </div>
+      <ol class="trilha" aria-label="Etapas">
+        <li data-p="1">De onde vem</li><li data-p="2">O que fazer depois</li><li data-p="3">Ouvindo</li><li data-p="4">Pronto</li>
+      </ol>
+      <div class="p-corpo">
+        <section class="bloco remendo" data-bloco="fonte" aria-labelledby="t-fonte">
+          <h3 id="t-fonte">De onde vem o som</h3>
+          <div class="fontes" role="radiogroup" aria-labelledby="t-fonte">
+            <button type="button" role="radio" class="fonte" data-fonte="audio" aria-checked="true">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+              <b>Gravar áudio</b><small>Som do PC (reunião, aula, live) e o seu microfone.</small></button>
+            <button type="button" role="radio" class="fonte" data-fonte="tela" aria-checked="false">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>
+              <b>Gravar tela e áudio</b><small>Aula com slides ou teste de um programa.</small></button>
+            <button type="button" role="radio" class="fonte" data-fonte="youtube" aria-checked="false">
+              <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="M10 9l5 3-5 3z"/></svg>
+              <b>Puxar do YouTube</b><small>Cole o link. TikTok e outros também.</small></button>
+          </div>
+          <div class="detalhe" data-detalhe="audio tela">
+            <label class="marcar"><input type="checkbox" id="g-mic" checked> Gravar o meu microfone também (fica numa faixa separada: "Eu")</label>
+          </div>
+          <div class="detalhe grade" data-detalhe="tela" hidden>
+            <label>O que gravar
+              <select id="g-alvo"><option value="tela">A tela inteira</option><option value="janela">Só uma janela</option></select></label>
+            <label id="l-janela" hidden>Título exato da janela
+              <input id="g-janela" placeholder="Ex.: Bloco de Notas"></label>
+            <label>Para quê
+              <select id="g-perfil"><option value="app">Testar um programa (cada mudança da tela)</option><option value="aula">Aula ou reunião com slides</option></select></label>
+          </div>
+          <div class="detalhe" data-detalhe="youtube" hidden>
+            <label for="y-links">Links, um por linha</label>
+            <textarea id="y-links" rows="3" placeholder="https://www.youtube.com/watch?v=..."></textarea>
+            <label class="marcar"><input type="checkbox" id="y-legenda"> Usar a legenda do vídeo, se houver (mais rápido; erra mais nomes)</label>
+          </div>
+          <details class="opcoes">
+            <summary>Mais opções</summary>
+            <div class="grade">
+              <label>Quem falou
+                <select id="p-falantes"><option value="nao">Não separar</option><option value="auto">Descobrir as pessoas</option><option value="2">2 pessoas</option><option value="3">3 pessoas</option><option value="4">4 pessoas</option><option value="perfis">Só perfis cadastrados</option></select></label>
+              <label>Idioma
+                <select id="p-lang"><option value="pt">Português</option><option value="en">Inglês</option><option value="es">Espanhol</option><option value="auto">Detectar</option></select></label>
+            </div>
+          </details>
+        </section>
+
+        <section class="bloco remendo" data-bloco="depois" aria-labelledby="t-depois">
+          <h3 id="t-depois">Depois que eu ouvir</h3>
+          <div class="escolhas" role="radiogroup" aria-labelledby="t-depois">
+            <label class="escolha"><input type="radio" name="depois" value="guardar" checked>
+              <span><b>Só transcrever e guardar</b><small>O texto fica na pasta do vídeo, no seu PC. Nada vai para a internet.</small></span></label>
+            <label class="escolha"><input type="radio" name="depois" value="agentes">
+              <span><b>Transcrever e pedir aos agentes</b><small>Eu anoto o pedido na pasta. No Claude Code, é só dizer "faz os pedidos da Vatty".</small></span></label>
+          </div>
+          <fieldset class="agentes" id="p-agentes" disabled><legend class="so-leitor">Agentes</legend></fieldset>
+          <label class="objetivo">O que você quer? <small>(foco, nível, ou o que estava testando)</small>
+            <input id="p-objetivo" maxlength="300" placeholder="Ex.: prazos e decisões / testei o cadastro, esperava cair no painel" disabled></label>
+        </section>
+
+        <section class="bloco remendo deck" data-bloco="ouvindo" aria-labelledby="t-ouvindo">
+          <h3 id="t-ouvindo" class="so-leitor">Ouvindo</h3>
+          <div id="deck"></div>
+        </section>
+
+        <section class="bloco remendo ativo" data-bloco="pronto" aria-labelledby="t-pronto">
+          <h3 id="t-pronto">Pronto</h3>
+          <div id="pronto"></div>
+        </section>
+
+        <aside class="p-resumo remendo" aria-label="Seu pedido">
+          <h3>Seu pedido</h3>
+          <dl id="resumo-pedido"></dl>
+          <p class="dica" id="p-aviso" role="status"></p>
+          <div class="p-botoes">
+            <button type="button" class="btn btn-calmo" id="p-voltar">Voltar</button>
+            <button type="button" class="btn btn-principal" id="p-proximo">Próximo</button>
+            <button type="button" class="btn btn-principal" id="p-comecar">Começar a gravar</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="aba-importar" class="aba" role="tabpanel" hidden>
       <div class="remendo ativo" id="falta" hidden role="alert"></div>
       <div class="remendo" id="soltar" tabindex="0" role="button" aria-label="Escolher arquivos de áudio ou vídeo">
         <h2>Importar áudio ou vídeo</h2>
@@ -101,5 +195,6 @@
   </div>
 </section>
 <script src="/static/app.js"></script>
+<script src="/static/painel.js"></script>
 </body>
 </html>

@@ -17,6 +17,7 @@ tem Discord. Até a versão 0.9.0 o projeto se chamava Natty-ATA.
 
 Na conversa principal fala a **Vatty**. Ela é só voz: não muda regra técnica e **nunca entra nos
 arquivos que os agentes escrevem**. Detalhes em `AGENTS.md`.
+Na primeira resposta de cada conversa ela se apresenta (texto em `AGENTS.md`, seção "Primeira mensagem").
 
 ## Arquitetura
 

@@ -111,7 +111,7 @@ class TestGravacaoNaApi(Base):
         self.srv.gravador = gravador.Gravador(Path(self.tmp.name) / "gravacoes", self.fila, popen=proc,
                                               pasta_temporaria=self.tmp.name)
         status, corpo = self.chamar("/api/agentes")
-        self.assertIn("perito", [a["id"] for a in json.loads(corpo)])
+        self.assertIn("perito", [a["id"] for a in json.loads(corpo)["lista"]])
         self.assertEqual(json.loads(self.chamar("/api/gravacao")[1])["estado"], "parado")
         self.assertEqual(json.loads(self.chamar("/api/gravacao", {"microfone": True})[1])["estado"], "gravando")
         self.assertEqual(json.loads(self.chamar("/api/gravacao/parar", {})[1])["estado"], "parando")

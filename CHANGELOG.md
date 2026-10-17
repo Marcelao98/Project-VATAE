@@ -10,11 +10,17 @@ Painel "Começar" no `vatty ui`.
 - **Gravar pela interface**: `vatty/ui/gravador.py` roda `vatty gravar` em segundo plano; o "Parar" cria um
   arquivo vigiado (`vatty gravar --parar-com ARQUIVO`, novo) e a transcrição entra na fila sozinha, com o perfil
   de tela escolhido. Fechar e reabrir a página reencontra a gravação.
-- **Pedidos aos agentes** sem IA no Python: `pedidos.json` na pasta do vídeo, feito pela conversa do Claude Code
-  ("faz os pedidos da Vatty"); "copiar prompt" de cada agente na tela de pronto.
+- **Agentes pelo Claude Code local**: ao fim da transcrição, o pedido vai para `pedidos.json` e o painel roda
+  `claude -p` na pasta do projeto (pedido pelo stdin, só ler e escrever arquivo, sem terminal); o andamento
+  ("chamando o agente perito...") aparece na fila e os arquivos escritos aparecem na tela de pronto. Sem Claude
+  Code, ou se ele falhar, o texto fica salvo e o pedido fica pendente ("faz os pedidos da Vatty" ou "copiar
+  prompt"). Gravar e transcrever não precisam dele. **Provado de verdade na nuvem**: o Escrivão escreveu os
+  pontos-chave de uma transcrição curta e o pedido foi marcado como feito.
 - Corrigido: POST cujo corpo a rota não lia (Parar, Cancelar, Tentar de novo) deixava o corpo na conexão, e a
   requisição seguinte chegava como `{}GET` (erro 501).
-- 533 testes (eram 524). Conferido no Chromium da nuvem com uma gravação falsa nos três modos, no celular
+- Checagem de saúde lista o Claude Code (opcional). Biblioteca reconhece `pericia-*.md`, `cartoes-*.md` e
+  `legenda.<lang>.srt`.
+- 537 testes (eram 524). Conferido no Chromium da nuvem com uma gravação falsa nos três modos, no celular
   (390 px) e no tema claro, sem erro no console. **Não verificado**: gravar de verdade pelo painel no Windows.
 
 ## 0.16.0 — 2026-10-13

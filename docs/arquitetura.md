@@ -242,7 +242,11 @@ compara dois vídeos). Não criar agente novo sem necessidade real.
 - `ui/` (`vatty ui`), painel "Começar": `gravador.py` roda `vatty gravar --parar-com ARQUIVO` em segundo plano
   (uma gravação por vez), lê o medidor da CLI (tempo e nível por faixa) e, ao parar, põe a pasta na fila com
   `visual` app/aula se teve tela; o "Parar" só cria o arquivo vigiado, sem sinal, igual em qualquer sistema.
-  `pedidos.py` anota os agentes pedidos em `pedidos.json` quando o trabalho termina (o `runner` chama), sem IA.
+  `pedidos.py` anota os agentes pedidos em `pedidos.json` quando o trabalho termina (o `runner` chama).
+  `claude.py` roda o Claude Code local (`claude -p --output-format stream-json --permission-mode acceptEdits`,
+  `--allowedTools Read,Write,Edit,Glob,Grep,Task,Agent`, `--add-dir` da pasta) na pasta do projeto, com o
+  pedido pelo stdin, e resume o stream no log ("Chamando o agente X...", "Escrevendo Y.md"). Falha dele vira
+  aviso: o trabalho termina pronto, porque o texto já está salvo.
   Front: `painel.js`/`painel.css`, as mesmas peças (fonte, depois, ouvindo, pronto, resumo) em três arranjos
   por `data-modo` (passos, bancada, estudio); o modo fica no `localStorage`. O servidor descarta o corpo de
   um POST que a rota não leu (sobrava na conexão e a próxima requisição chegava como `{}GET`).
@@ -251,7 +255,7 @@ compara dois vídeos). Não criar agente novo sem necessidade real.
   `terminal.py` (só subcomandos `vatty`, caminhos dentro da raiz), `biblioteca.py` (lista, leitor, exportar;
   nunca sai da raiz), `revisao.py` (corrigir palavra, regra do glossário em `<raiz>/glossario.txt`,
   `nomes.json`), `prompts.py` ("copiar prompt"), `saude.py` (o que falta instalar), `static/` (tela).
-  A interface não chama LLM: só gera o texto do prompt.
+  A interface não chama API de LLM: gera o texto do prompt ou dispara o Claude Code local (`claude.py`).
 - `lote.py`: `vatty lote`. Lê a lista (ou expande a playlist), roda cada item como subprocesso `vatty`, não para no
   erro e devolve o relatório. `fonte.listar_playlist` usa `extract_flat`.
 - **Cartas** (`cartas.md`): flashcards em formato fixo; `cartoes.py` converte em `.csv` do Anki.

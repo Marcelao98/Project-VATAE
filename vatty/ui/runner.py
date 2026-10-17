@@ -11,7 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import pedidos
+from . import claude, pedidos
 from .fila import Cancelado
 
 OPCOES_TEXTO = ("legenda", "whisper")
@@ -107,7 +107,7 @@ def _linhas(fluxo):
         yield resto
 
 
-def executar(trabalho, ctx, saida, popen=subprocess.Popen) -> str:
+def executar(trabalho, ctx, saida, popen=subprocess.Popen, achar_claude=None) -> str:
     """Roda a CLI para o trabalho. Devolve a pasta do vídeo. `popen` entra por parâmetro para os testes."""
     opcoes = dict(trabalho.opcoes)
     padrao = Path(saida) / "glossario.txt"  # as correções que a pessoa guardou na revisão valem para os próximos
@@ -142,6 +142,19 @@ def executar(trabalho, ctx, saida, popen=subprocess.Popen) -> str:
         raise RuntimeError("A Vatty terminou sem dizer onde guardou o resultado.")
     anotados = pedidos.registrar(pasta, opcoes.get("agentes"), opcoes.get("objetivo", ""))
     if anotados:
-        ctx.log("Pedido anotado para: " + ", ".join(pedidos.AGENTES[a][0] for a in anotados)
-                + ". No Claude Code, diga: faz os pedidos da Vatty.")
+        _agentes(pasta, anotados, ctx, popen, achar_claude or claude.achar)
     return pasta
+
+
+def _agentes(pasta, anotados, ctx, popen, achar_claude) -> None:
+    """Chama o Claude Code local para os pedidos. Se faltar ou falhar, o texto já está salvo: só avisa."""
+    nomes = ", ".join(pedidos.AGENTES[a][0] for a in anotados)
+    exe = achar_claude()
+    if not exe:
+        ctx.log(f"Aviso: pedido anotado para {nomes}, mas o Claude Code não está instalado neste PC. "
+                "Instale e diga \"faz os pedidos da Vatty\", ou use \"copiar prompt\".")
+        return
+    ctx.log(f"Chamando o Claude Code para: {nomes}.")
+    if claude.rodar(pasta, ctx, exe, popen=popen) != 0:
+        ctx.log("Aviso: os agentes não terminaram (veja acima). O texto está salvo e o pedido continua anotado: "
+                "no Claude Code, diga \"faz os pedidos da Vatty\".")

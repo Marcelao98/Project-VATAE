@@ -15,10 +15,10 @@ const painel = {
 
 const FALAS = {
   1: ["Me diz de onde vem o som.", "Eu gravo o seu PC ou puxo um vídeo do YouTube, escuto tudo aqui mesmo e escrevo com o horário de cada fala."],
-  2: ["E depois que eu ouvir?", "Posso só guardar o texto no seu PC, ou deixar anotado um pedido para os agentes: pontos-chave, ata, flashcards, achar bugs..."],
+  2: ["E depois que eu ouvir?", "Posso só guardar o texto no seu PC, ou chamar os agentes pelo Claude Code: pontos-chave, ata, flashcards, achar bugs..."],
   gravando: ["Ouvido ligado.", "Estou gravando. Avise quem está na conversa. Quando quiser, aperte Parar."],
   parando: ["Guardando o que ouvi...", "Fechando os arquivos da gravação."],
-  escrevendo: ["Escrevendo o que ouvi...", "Isso roda no seu PC e pode levar alguns minutos. Pode fechar esta aba: eu continuo."],
+  escrevendo: ["Escrevendo o que ouvi...", "Isso roda no seu PC e pode levar alguns minutos (com agentes, mais um pouco). Pode fechar esta aba: eu continuo."],
   pronto: ["Pronto!", "Guardei tudo na pasta do vídeo."],
   erro: ["Não ouvi direito.", "Alguma coisa deu errado. O motivo está abaixo."],
 };
@@ -238,8 +238,16 @@ function desenharPronto(lista) {
       const status = el("span", { class: "dica", role: "status" });
       const botoes = p.agentes.map((id) => painel.agentes.find((a) => a.id === id)).filter((a) => a && a.prompt).map((a) =>
         el("button", { class: "btn-mini", onclick: () => copiarPrompt(slug, a, p.objetivo, status) }, "Copiar prompt: " + a.faz));
-      bloco.append(el("p", {}, "Anotei o pedido para os agentes. No Claude Code, diga ", el("span", { class: "comando-claude" }, "faz os pedidos da Vatty"), "."),
+      const arquivos = el("div", { class: "pedido" });
+      bloco.append(el("h3", { style: "margin-top:14px" }, "O que os agentes escreveram"), arquivos,
+        el("p", { class: "dica" }, "Faltou algum? No Claude Code, diga ", el("span", { class: "comando-claude" }, "faz os pedidos da Vatty"),
+          ", ou copie o prompt para outra IA:"),
         el("div", { class: "pedido" }, ...botoes, status));
+      api("video/" + encodeURIComponent(slug)).then((v) => {
+        const mds = v.gerados.filter((g) => g.endsWith(".md"));
+        arquivos.replaceChildren(...(mds.length ? mds.map((g) => el("a", { class: "btn-mini", href: comToken("arquivo/" + encodeURIComponent(slug) + "/" + encodeURIComponent(g)) }, g))
+          : [el("span", { class: "dica" }, painel.claude ? "Nenhum arquivo ainda: veja o log no Terminal (embaixo)." : "Nada ainda: o Claude Code não está neste PC.")]));
+      }).catch(() => {});
     }
     return bloco;
   });
@@ -297,7 +305,10 @@ $("p-comecar").addEventListener("click", comecar);
 (async function iniciarPainel() {
   let modo = "passos";
   try { modo = localStorage.getItem("vatty-modo") || modo; } catch (_) { /* sem armazenamento */ }
-  painel.agentes = await api("agentes").catch(() => []);
+  const ag = await api("agentes").catch(() => ({ claude: false, lista: [] }));
+  painel.agentes = ag.lista;
+  painel.claude = ag.claude;
+  if (!ag.claude) $("p-agentes-dica").textContent = "O Claude Code não está neste PC: eu só anoto o pedido na pasta e você usa \"copiar prompt\". Gravar e transcrever funcionam sem ele.";
   $("p-agentes").replaceChildren(el("legend", { class: "so-leitor" }, "Agentes"), ...painel.agentes.map((a) =>
     el("label", { class: "agente" }, el("input", { type: "checkbox", value: a.id, onchange: atualizarResumo }),
       a.nome, el("small", {}, a.faz))));

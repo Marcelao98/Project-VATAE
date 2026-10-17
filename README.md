@@ -442,8 +442,10 @@ vatty ui                                      # interface no navegador
 
 **Interface (`vatty ui`):** abre `http://127.0.0.1:8765` com um token. A primeira aba, **Começar**, é o painel
 da Vatty: escolha **gravar áudio**, **gravar tela e áudio** ou **puxar do YouTube**, depois **só transcrever e
-guardar** (100% no seu PC) ou **pedir aos agentes** (ela anota o pedido na pasta; no Claude Code, diga "faz os
-pedidos da Vatty", ou use os botões "copiar prompt"). O gravador mostra o tempo e o nível de cada faixa, e o
+guardar** (100% no seu PC) ou **chamar os agentes**: quando a transcrição termina, a Vatty chama o **Claude
+Code** instalado no seu PC (com a sua conta), que roda os agentes e escreve os arquivos na pasta; o andamento
+aparece na fila. Sem Claude Code, ela só anota o pedido (diga depois "faz os pedidos da Vatty" no Claude Code,
+ou use "copiar prompt"). Gravar e transcrever **nunca** precisam do Claude Code. O gravador mostra o tempo e o nível de cada faixa, e o
 "Parar" já manda transcrever. Três jeitos de ver, no canto: **Passo a passo** (padrão, guiado), **Bancada**
 (tudo numa tela) e **Estúdio** (o gravador no centro, os agentes do lado). Pode fechar a aba durante a
 gravação: ao voltar, o painel reencontra o gravador. Nas outras abas: importe

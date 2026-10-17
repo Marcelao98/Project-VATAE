@@ -90,13 +90,34 @@ class TestExecutar(unittest.TestCase):
     def test_pedido_de_agente_fica_anotado_na_pasta(self):
         with tempfile.TemporaryDirectory() as pasta:
             proc = ProcFalso(f"Pronto em 0:42 (texto de whisper, 180s de áudio): {pasta}\n".encode())
-            fila = f.Fila(lambda t, c: runner.executar(t, c, "transcricoes", popen=lambda *a, **k: proc))
+            fila = f.Fila(lambda t, c: runner.executar(t, c, "transcricoes", popen=lambda *a, **k: proc,
+                                                       achar_claude=lambda: None))
             with tempfile.NamedTemporaryFile() as arq:
                 t = fila.adicionar(arq.name, {"agentes": ["escrivao"], "objetivo": "juros"})
                 fila.processar_um()
             self.assertEqual(t.estado, f.PRONTO)
             self.assertTrue((Path(pasta) / "pedidos.json").is_file())
-            self.assertTrue(any("faz os pedidos da Vatty" in l for l in t.log))
+            self.assertTrue(any("Claude Code não está instalado" in l for l in t.log))  # sem ele, só anota
+
+    def test_com_claude_code_chama_os_agentes_e_falha_dele_nao_derruba_a_transcricao(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            transcricao = ProcFalso(f"Pronto em 0:42 (texto de whisper, 180s de áudio): {pasta}\n".encode())
+            agentes = ProcFalso(b'{"type":"result","is_error":true,"result":"Not logged in"}\n', codigo=1)
+            agentes.stdin = io.BytesIO()
+            chamadas = []
+
+            def popen(argv, **k):
+                chamadas.append(argv)
+                return transcricao if len(chamadas) == 1 else agentes
+
+            fila = f.Fila(lambda t, c: runner.executar(t, c, "transcricoes", popen=popen, achar_claude=lambda: "claude"))
+            with tempfile.NamedTemporaryFile() as arq:
+                t = fila.adicionar(arq.name, {"agentes": ["perito"]})
+                fila.processar_um()
+            self.assertEqual(t.estado, f.PRONTO)  # o texto está salvo mesmo com o erro dos agentes
+            self.assertEqual(chamadas[1][:2], ["claude", "-p"])
+            self.assertIn("Erro dos agentes: Not logged in", t.log)
+            self.assertTrue(any(l.startswith("Aviso: os agentes não terminaram") for l in t.log))
 
     def test_cancelar_derruba_o_processo(self):
         t, proc = rodar(b"Transcrevendo...\nmais uma\n", cancelar_antes=True)

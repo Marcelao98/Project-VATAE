@@ -17,7 +17,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .. import buscar as _buscar
-from . import biblioteca, gravador as _gravador, pedidos, prompts, revisao, runner, saude, terminal
+from . import biblioteca, claude, gravador as _gravador, pedidos, prompts, revisao, runner, saude, terminal
 
 ESTATICOS = Path(__file__).parent / "static"
 UPLOAD_MAX = 8 * 1024 ** 3
@@ -173,7 +173,7 @@ class Handler(BaseHTTPRequestHandler):
         if metodo == "GET" and p[0] == "arquivo" and len(p) == 3:
             return self._arquivo(biblioteca.arquivo_gerado(s.raiz, p[1], p[2]), nome=p[2])
         if metodo == "GET" and p == ["agentes"]:
-            return self._json(pedidos.lista())
+            return self._json({"claude": bool(claude.achar()), "lista": pedidos.lista()})
         if metodo == "GET" and p == ["gravacao"]:
             return self._json(s.gravador.resumo())
         if metodo == "POST" and p == ["gravacao"]:

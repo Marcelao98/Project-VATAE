@@ -38,6 +38,9 @@ def checar(procurar=shutil.which, tem_modulo=_tem_modulo, modelo_em_cache=_model
          "Só para a opção 'Ler os slides'. Instale o Tesseract com o idioma português."),
         ("falantes", "Separar quem falou (sherpa-onnx)", tem_modulo("sherpa_onnx"), OPCIONAL,
          "Só para 'Descobrir as pessoas'. Rode: pip install sherpa-onnx"),
+        ("claude", "Agentes (Claude Code)", bool(procurar("claude")), OPCIONAL,
+         "Só para chamar os agentes (pontos-chave, ata, achar bugs...). Gravar e transcrever funcionam sem ele. "
+         "Instale o Claude Code e entre com a sua conta."),
         ("ata", "Ata em .docx e .pdf", tem_modulo("docx") and tem_modulo("reportlab"), OPCIONAL,
          "Só para `vatty ata`. Rode: pip install python-docx reportlab"),
     ]

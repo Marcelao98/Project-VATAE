@@ -36,11 +36,21 @@ O texto que você escreve é a parte mais cara. Então:
   2. `transcricao.txt` **inteiro, na menor quantidade de chamadas** (continue
      com `offset` até o fim). Em gravação, `Eu:` é quem testava (microfone) e
      `Outros:` é o som do PC (o próprio programa, um vídeo, uma call).
-  3. `visual.json`, **se existir**, inteiro. Foi gerado pelo código: cada
-     linha de `eventos` é uma tela que ficou parada (`inicio`, `fim`, `texto`
-     lido por OCR, `confianca` de 0 a 100, `frame`). Em gravação com tela,
-     o cabeçalho traz `sincronia`: os horários já estão na linha do tempo da
-     fala, compare direto com o `[mm:ss]` do texto.
+  3. `visual.json`, **se existir**, inteiro. Foi gerado pelo código, um
+     evento por linha. Com `"perfil": "app"` (o padrão da gravação com tela):
+     - `tela`: um estado da tela parada (`inicio`, `fim`, `texto` lido por
+       OCR, `confianca` de 0 a 100, `frame`). Com `regiao` (`[x0, y0, x1, y1]`
+       em fração da tela), o texto e o quadro são **só do pedaço que mudou**
+       (um campo, um aviso), não da tela inteira. Com `"repetida": true`, é
+       uma tela que já apareceu antes (mesmo `frame`), sem texto de novo.
+     - `transitorio`: apareceu e sumiu em poucos segundos, voltando à tela de
+       antes. É o aviso, o pop-up, o erro que pisca: olhe sempre.
+     - `movimento`: a tela mexeu sem parar (carregando, rolagem, animação).
+       Sem texto nem quadro; a duração é a espera.
+     A duração de cada evento (`fim - inicio`) mede espera e tempo de leitura.
+     Com `"perfil": "aula"`, cada evento é um slide que ficou parado.
+     Em gravação com tela, o cabeçalho traz `sincronia`: os horários já
+     estão na linha do tempo da fala, compare direto com o `[mm:ss]` do texto.
 - **Não leia** `transcricao.json`.
 - Os quadros em `frames/` são imagens e custam caro: abra **no máximo 6**, só
   os que provam um bug ou um erro que o OCR leu mal (texto com `confianca`
@@ -111,11 +121,12 @@ Regras do formato:
 
 ## Limites da gravação (diga quando pesam)
 
-- A tela é gravada a **2 quadros por segundo** e o `visual.json` guarda só as
-  telas que **ficaram paradas**: aviso rápido (toast que some em menos de
-  1 s), animação e o cursor quase nunca aparecem. Telas sem texto (imagem,
-  vídeo, jogo) foram descartadas pelo código. Não concluir que "não houve
-  erro" só porque nenhum evento mostra erro.
+- No perfil `app`, a tela é comparada 5 vezes por segundo e um estado conta
+  quando fica parado 0,4 s: o que aparece e some mais rápido que isso (um
+  clique, um flash) não vira evento. Mudança muito pequena (um caractere
+  digitado, o cursor) também não. No perfil `aula`, só ficam os slides
+  parados por uns 2 s e telas sem texto são descartadas. Em nenhum dos dois
+  conclua que "não houve erro" só porque nenhum evento mostra erro.
 - Sem `visual.json` (gravação só de áudio), tudo sai da fala: a certeza
   máxima é `dito`, e diga isso na primeira linha de Dúvidas.
 - OCR com `confianca` baixa (menos de 60) é duvidoso: abra o quadro se for a

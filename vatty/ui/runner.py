@@ -14,7 +14,7 @@ from pathlib import Path
 from .fila import Cancelado
 
 OPCOES_TEXTO = ("legenda", "whisper")
-OPCOES_VISUAL = ("nenhum", "aula")
+OPCOES_VISUAL = ("nenhum", "aula", "app")
 OPCOES_PRE = ("sim", "nao")
 RE_PROGRESSO = re.compile(r"^\s*(\d{1,3})%")
 RE_PRONTO = re.compile(r"^Pronto em .*?\): (.+)$")

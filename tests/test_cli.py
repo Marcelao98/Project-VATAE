@@ -228,7 +228,9 @@ def _whisper_falso_arquivo(caminho, args, idioma):
 class _TelaFalsa:
     """CapturaTela falsa: escreve um tela.mp4 de mentira e começa 1,5 s antes do áudio (ver setUp)."""
 
-    def __init__(self, saida, janela=None):
+    motor, fps, aviso = "ddagrab", 30, None
+
+    def __init__(self, saida, janela=None, fps=None):
         self.janela = janela
         Path(saida).write_bytes(b"video")
         self.inicio, self.inicio_aproximado = 1000.0, False
@@ -383,8 +385,8 @@ class TestGravacaoCli(unittest.TestCase):
         self.assertTrue((pasta_audio / "tela.mp4").is_file())
         meta = gravacao.ler_metadados(pasta_audio)
         self.assertEqual(meta["inicios"], {"sistema": 1001.5, "tela": 1000.0})
-        self.assertEqual(meta["tela"]["alvo"], "tela inteira")
-        self.assertIn(f"vatty {pasta_audio} --visual aula", out)
+        self.assertEqual((meta["tela"]["alvo"], meta["tela"]["motor"]), ("tela inteira", "ddagrab"))
+        self.assertIn(f"vatty {pasta_audio} --visual app", out)  # o perfil app é o padrão da gravação
 
     def test_tela_transcrever_tira_os_slides_na_linha_do_audio_e_apaga_a_tela(self):
         with mock.patch.object(cli, "_fazer_visual") as fazer:
@@ -395,6 +397,13 @@ class TestGravacaoCli(unittest.TestCase):
         self.assertEqual((video, deslocamento), (pasta_audio / "tela.mp4", -1.5))
         self.assertFalse(video.exists())
         self.assertEqual(self.fonte_json()["inicios"]["tela"], 1000.0)
+
+    def test_tela_fps_e_perfil_aula(self):
+        with mock.patch.object(tela, "CapturaTela", wraps=_TelaFalsa) as captura, \
+                mock.patch.object(cli, "_fazer_visual") as fazer:
+            self.gravar("--tela", "--tela-fps", "15", "--visual", "aula", "--transcrever", "--manter-audio")
+        self.assertEqual(captura.call_args.kwargs["fps"], 15)
+        self.assertEqual(fazer.call_args.args[0].visual, "aula")
 
     def test_manter_tela(self):
         with mock.patch.object(cli, "_fazer_visual"):
@@ -420,7 +429,7 @@ class TestGravacaoCli(unittest.TestCase):
         self.assertTrue(self.saida.exists())  # o texto ficou
 
     def test_erro_ao_abrir_a_tela_nao_deixa_pasta(self):
-        def falha(saida, janela=None):
+        def falha(saida, janela=None, fps=None):
             raise tela.ErroTela("a gravação da tela só funciona no Windows por enquanto.")
         with mock.patch.object(tela, "CapturaTela", falha):
             codigo, _, err = self.gravar("--tela")
@@ -568,6 +577,17 @@ class TestVisualCli(unittest.TestCase):
         self.assertEqual(self.baixou, [])
         self.assertEqual(Path(self.detectar.call_args.args[0]), arquivo)
         self.assertTrue((self.saida / "aula" / "visual.json").is_file())
+
+    def test_perfil_app_num_video_local(self):
+        arquivo = self.raiz / "teste-do-app.mp4"
+        arquivo.write_bytes(b"v")
+        dados = {"perfil": "app", "eventos": [{"tipo": "transitorio", "inicio": 1.0, "fim": 2.0, "texto": "Erro"}]}
+        with mock.patch.object(cli.app, "montar", return_value=dados) as montar:
+            codigo, _, _ = self.rodar(str(arquivo), "--visual", "app")
+        self.assertEqual(codigo, 0)
+        self.assertEqual(Path(montar.call_args.args[0]), arquivo)
+        self.detectar.assert_not_called()  # o perfil aula não roda
+        self.assertIn('"perfil": "app"', (self.saida / "teste-do-app" / "visual.json").read_text(encoding="utf-8"))
 
     def test_gravacao_de_audio_ignora_o_visual(self):
         pasta_audio = self.raiz / "gravacoes" / "2026-10-10_14-30"

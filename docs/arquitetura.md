@@ -40,9 +40,20 @@ terminal, a CLI pede `aula` ou `nenhum`). URL baixa só a imagem, até 720p
 quadros, 0,5% de tela mudada, 10x10 de bloco, teto de 300 slides, 8 palavras
 no palpite) foram medidos só em vídeo sintético: ajustar com vídeo real.
 
+Perfil `app` (`--visual app`, padrão da gravação com tela): para quem usa ou
+testa um programa. O `aula` descarta justamente o que importa num programa (o
+aviso que pisca, a tela em branco, a área que muda), então o `app` compara 5
+quadros/s, aceita a tela parada 0,4 s, não usa máscara de movimento e não
+descarta tela sem texto. Eventos: `tela`, `transitorio` (estado curto seguido da
+volta à tela de antes) e `movimento` (mexendo sem parar por 2 s ou mais, sem
+OCR). Economia: OCR só da região que mudou quando ela é pequena (até metade da
+tela; o quadro salvo também é o recorte) e tela repetida (pela assinatura, uma
+grade 18x32 em 8 tons) não é lida de novo (`repetida`, mesmo `frame`). Números
+medidos só em quadro sintético.
+
 Em gravação com tela (`vatty gravar --tela --transcrever`, ou `vatty
-gravacoes/<pasta> --visual aula` depois), o vídeo é o `tela.mp4` da pasta da
-gravação, os horários dos slides passam por `tela.sincronizar` e o `tela.mp4` é
+gravacoes/<pasta> --visual app` depois), o vídeo é o `tela.mp4` da pasta da
+gravação, os horários dos eventos passam por `tela.sincronizar` e o `tela.mp4` é
 apagado no fim (`--manter-tela` guarda). Se o visual falhar, nada da gravação é
 apagado, para tentar de novo.
 
@@ -69,19 +80,25 @@ apagado, para tentar de novo.
   e o fim do trecho valem da primeira à última palavra. `Gravacao.inicio` é o
   horário real (relógio do sistema) em que o relógio das faixas começou; com
   `--tela` ele vai para o `gravacao.json` da pasta (`salvar_metadados`/`ler_metadados`).
-- `tela.py`: grava a tela com o ffmpeg em segundo plano (`gdigrab`, só Windows,
-  2 quadros/s, sem áudio, até 1280 px, x264 `ultrafast` + `zerolatency`, mp4
-  fragmentado para sobreviver a uma queda). O ffmpeg roda num grupo de processo
-  próprio (o Ctrl+C da gravação não o derruba) e para com `q` no stdin. O
-  horário real do primeiro quadro vem do `-progress` (horário do relatório menos
-  o `out_time` já escrito); sem relatório em 10 s, fica o horário em que abriu
-  (`inicio_aproximado`). A tela abre **antes** do áudio: o áudio aberto antes
+- `tela.py`: grava a tela com o ffmpeg em segundo plano, só Windows, sem áudio,
+  taxa variável (`-fps_mode vfr`: quadro igual não é gravado), até 1920 px, x264
+  `ultrafast` + `zerolatency` + `crf 25`, mp4 fragmentado para sobreviver a uma
+  queda. Tela inteira pelo `ddagrab` (Desktop Duplication, GPU, `dup_frames=0`,
+  30/s, ffmpeg 6.1+); janela, ffmpeg sem `ddagrab` (`ffmpeg -filters`) ou
+  `ddagrab` que fecha logo caem no `gdigrab` a 10/s com `mpdecimate` (`aviso`).
+  O ffmpeg roda num grupo de processo próprio (o Ctrl+C da gravação não o
+  derruba) e para com `q` no stdin. O horário real do primeiro quadro vem do
+  `-progress` a cada 0,1 s (`-stats_period`): no primeiro relatório com
+  `frame >= 1`, horário do relatório menos o `out_time` já escrito; sem
+  relatório em 10 s, fica o horário em que abriu (`inicio_aproximado`). A tela abre **antes** do áudio: o áudio aberto antes
   acumularia a espera do ffmpeg. `deslocamento` (início da tela menos o do
   áudio) e `sincronizar` (soma aos eventos do visual, corta no zero) são puros.
   A captura real não tem teste automático (ver `docs/testes-reais.md`).
 - `quadros.py`: vídeo → quadros via ffmpeg: um quadro pequeno em cinza a cada
   intervalo (em fluxo, nunca vai ao disco) e a extração de um quadro JPG em
-  boa qualidade num horário.
+  boa qualidade num horário (inteiro ou só um `recorte`).
+- `app.py`: perfil `app` (ver "Visual"). `detectar_eventos`, `regiao_mudada` e
+  `assinatura` são puros; `montar` usa as `aula.Ferramentas`.
 - `visual.py`: lógica pura do perfil "aula". Acha as trocas de tela comparando
   cada quadro com o último slide aceito; só aceita a troca depois que a tela
   estabiliza (espera a animação). Regiões que mexem o tempo todo (câmera do
@@ -240,6 +257,7 @@ compara dois vídeos). Não criar agente novo sem necessidade real.
   fala) e escreve `pericia-<assunto>.md`: bugs (evidência, gravidade, certeza `visto`/`dito`/`suposto`), lentidão,
   atrito, comportamento observado (ação -> resposta, útil para engenharia reversa) e passos para reproduzir o
   bug mais grave. Abre no máximo 6 quadros de `frames/`, esconde senha e token (`[oculto]`) e não ensina a burlar
-  proteção. Limite conhecido: a 2 quadros/s e só com telas paradas, aviso rápido (toast) e animação escapam.
+  proteção. Lê os eventos do perfil `app` (`transitorio` é o aviso que pisca; `movimento`, a espera).
+  Limite conhecido: o que some em menos de 0,4 s e mudança mínima (um caractere) não viram evento.
   Sem código novo: o Perito só lê o que a gravação já produz.
   Agente novo só aparece depois de reiniciar a sessão do Claude Code.

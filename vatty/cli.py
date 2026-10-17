@@ -8,12 +8,12 @@ import textwrap
 import time
 from pathlib import Path
 
-from . import acervo, aula, ata, audio, cartoes as _cartoes, traducao as _traducao, diarizar, fonte, glossario, gravacao, legenda, motor, ocr, pasta, perfis, preprocessar, quadros, srt, tela, visual, vozes
+from . import acervo, app, aula, ata, audio, cartoes as _cartoes, traducao as _traducao, diarizar, fonte, glossario, gravacao, legenda, motor, ocr, pasta, perfis, preprocessar, quadros, srt, tela, visual, vozes
 from .audio import ErroDeDecodificacao, FfmpegAusente
 
 PREPROCESSAR_ESCOLHAS = ("perguntar", "sim", "nao")
 TEXTO_ESCOLHAS = ("perguntar", "legenda", "whisper")
-VISUAL_ESCOLHAS = ("nenhum", "auto", "aula")
+VISUAL_ESCOLHAS = ("nenhum", "auto", "aula", "app")
 
 AVISO_CONSENTIMENTO = ("Aviso: gravar uma conversa sem avisar os outros participantes pode ser ilegal "
                        "onde você mora. Avise quem estiver na gravação.")
@@ -92,8 +92,9 @@ def _argumentos(argv):
     p.add_argument("--texto", choices=TEXTO_ESCOLHAS, default="perguntar",
                    help="URL com legenda: usar a legenda, o Whisper, ou perguntar depois de mostrar trechos (padrão)")
     p.add_argument("--visual", choices=VISUAL_ESCOLHAS, default="nenhum",
-                   help="extrai também o que aparece na tela (slides + OCR com Tesseract). 'aula' faz direto; "
-                        "'auto' mostra um palpite e pergunta; 'nenhum' (padrão) só o texto. Precisa de vídeo e do Tesseract")
+                   help="extrai também o que aparece na tela (OCR com Tesseract). 'aula': os slides que ficam parados; "
+                        "'app': cada mudança da tela, aviso rápido e espera (para quem testa um programa); "
+                        "'auto' mostra um palpite e pergunta (aula); 'nenhum' (padrão) só o texto. Precisa de vídeo e do Tesseract")
     return p.parse_args(argv)
 
 
@@ -387,6 +388,14 @@ def _fazer_visual(args, destino: Path, dados_fonte: dict, video=None, deslocamen
                      else fonte.baixar_video(dados_fonte.get("url") or args.entrada, Path(tmp)))
         elif video is None:  # arquivo local; com `video`, é a tela de uma gravação
             video = Path(args.entrada)
+        if args.visual == "app":
+            print("Procurando as mudanças da tela (perfil app)...")
+            dados = app.montar(video, destino, idiomas=idiomas, exe=exe,
+                               progresso_tela=_progresso_visual("tela"), progresso_leitura=_progresso_visual("leitura"),
+                               parametros={"intervalo_s": app.INTERVALO_S, "limiar_mudanca": app.LIMIAR,
+                                           "estaveis": app.ESTAVEIS, "max_eventos": app.MAX_EVENTOS})
+            print()
+            return _gravar_visual(destino, dados, deslocamento, "evento(s)")
         print("Procurando as trocas de tela...")
         deteccao = aula.detectar(video, progresso=_progresso_visual("tela"))
         print()
@@ -405,10 +414,14 @@ def _fazer_visual(args, destino: Path, dados_fonte: dict, video=None, deslocamen
                             parametros={"intervalo_s": visual.INTERVALO_S, "limiar_mudanca": visual.LIMIAR_MUDANCA,
                                         "max_slides": visual.MAX_SLIDES, "escolha": args.visual})
         print()
+    _gravar_visual(destino, dados, deslocamento, "slide(s)")
+
+
+def _gravar_visual(destino: Path, dados: dict, deslocamento, nome: str) -> None:
     if deslocamento is not None:  # gravação: os horários da tela vão para a linha do tempo do áudio
         dados = tela.sincronizar(dados, deslocamento)
     caminho = pasta.gravar_visual(destino, dados)
-    print(f"Visual: {len(dados['eventos'])} slide(s) em {caminho.parent} (visual.json e frames/).")
+    print(f"Visual: {len(dados['eventos'])} {nome} em {caminho.parent} (visual.json e frames/).")
 
 
 def _visual(args, destino: Path, dados_fonte: dict, video=None, deslocamento=None) -> int:
@@ -439,6 +452,11 @@ def _argumentos_gravar(argv):
                         "--transcrever, os slides vão para o visual.json e o tela.mp4 é apagado (salvo --manter-tela)")
     p.add_argument("--tela-janela", dest="tela_janela", metavar="TÍTULO",
                    help="grava só a janela com esse título exato, em vez da tela inteira (já liga --tela)")
+    p.add_argument("--tela-fps", dest="tela_fps", type=int, metavar="N",
+                   help=f"quadros por segundo da tela (padrão: {tela.FPS_TELA} na tela inteira, {tela.FPS_JANELA} numa janela)")
+    p.add_argument("--visual", choices=("app", "aula"), default="app",
+                   help="com --tela: 'app' (padrão) registra cada mudança da tela, aviso rápido e espera, para "
+                        "testar um programa; 'aula' só os slides que ficam parados")
     p.add_argument("--duracao", type=float, metavar="SEGUNDOS", help="para sozinho depois desse tempo (bom para testar: 5)")
     p.add_argument("--gravacoes", type=Path, default=Path("gravacoes"), help="onde guardar os .wav (padrão: gravacoes/)")
     _opcoes_comuns(p)
@@ -479,8 +497,10 @@ def _main_gravar(argv) -> int:
             # A tela abre antes do áudio: o ffmpeg demora um pouco para gravar o primeiro quadro,
             # e o áudio aberto antes ficaria acumulando essa espera.
             destino.mkdir(parents=True)
-            captura = tela.CapturaTela(destino / tela.ARQUIVO, janela=args.tela_janela)
-            print(f"  tela: {args.tela_janela or 'tela inteira'} ({tela.FPS} quadros por segundo)")
+            captura = tela.CapturaTela(destino / tela.ARQUIVO, janela=args.tela_janela, fps=args.tela_fps)
+            print(f"  tela: {args.tela_janela or 'tela inteira'} ({captura.motor}, até {captura.fps} quadros por segundo)")
+            if captura.aviso:
+                print(f"Aviso: {captura.aviso}")
         entradas = gravacao.abrir_entradas(microfone=args.mic)
         for e in entradas:
             print(f"  {e.nome}: {getattr(e, 'descricao', '')}")
@@ -501,11 +521,11 @@ def _main_gravar(argv) -> int:
     if captura is not None:
         _fechar_tela(captura, resultado, args.tela_janela)
     if not args.transcrever:
-        print(f"Para transcrever depois: vatty {resultado.pasta}" + (" --visual aula" if com_tela else ""))
+        print(f"Para transcrever depois: vatty {resultado.pasta}" + (f" --visual {args.visual}" if com_tela else ""))
         return 0
     args.entrada = str(resultado.pasta)
-    if com_tela:
-        args.visual = "aula"
+    if not com_tela:
+        args.visual = "nenhum"
     return _executar(args)
 
 
@@ -519,7 +539,7 @@ def _fechar_tela(captura, resultado, janela) -> None:
     inicios["tela"] = captura.inicio
     gravacao.salvar_metadados(resultado.pasta, {
         "inicios": inicios,
-        "tela": {"arquivo": tela.ARQUIVO, "alvo": janela or "tela inteira", "fps": tela.FPS,
+        "tela": {"arquivo": tela.ARQUIVO, "alvo": janela or "tela inteira", "motor": captura.motor, "fps": captura.fps,
                  "inicio_aproximado": captura.inicio_aproximado},
     })
 
@@ -737,7 +757,7 @@ def _main_lote(argv) -> int:
     p.add_argument("fonte")
     p.add_argument("--saida", type=Path, default=Path("transcricoes"))
     p.add_argument("--texto", choices=("legenda", "whisper"), default="whisper")
-    p.add_argument("--visual", choices=("nenhum", "aula"), default="nenhum")
+    p.add_argument("--visual", choices=("nenhum", "aula", "app"), default="nenhum")
     p.add_argument("--preprocessar", choices=("sim", "nao"), default="nao")
     p.add_argument("--falantes", type=_tipo_falantes, default="nao")
     p.add_argument("--lang", default=None)

@@ -14,7 +14,7 @@ class TestLerLista(unittest.TestCase):
 class TestEntradas(unittest.TestCase):
     def test_link_usa_o_listador_e_arquivo_le_as_linhas(self):
         self.assertEqual(lote.entradas_da_fonte("https://x/playlist", listar=lambda u: ("T", ["v1", "v2"])), ["v1", "v2"])
-        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as f:
             f.write("a.opus\n#c\nb.opus\n")
         try:
             self.assertEqual(lote.entradas_da_fonte(f.name), ["a.opus", "b.opus"])
@@ -22,7 +22,7 @@ class TestEntradas(unittest.TestCase):
             Path(f.name).unlink()
 
     def test_lista_vazia_ou_inexistente_e_erro(self):
-        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as f:
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as f:
             f.write("# só comentário\n")
         try:
             with self.assertRaises(lote.LoteErro):

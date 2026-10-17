@@ -40,30 +40,39 @@ class FfmpegFalso:
         self.vivo = False
 
 
+class _Saida:
+    def __init__(self, stdout):
+        self.stdout = stdout
+
+
+def _filtros(tem_ddagrab):
+    return lambda comando, **kw: _Saida(b" ... ddagrab  V->V  Grab Windows Desktop" if tem_ddagrab else b" ... gdigrab")
+
+
 def _abrir(ffmpeg, **kw):
-    opcoes = {"abrir": ffmpeg, "achar": lambda nome: "ffmpeg", "agora": lambda: 1000.0,
+    opcoes = {"abrir": ffmpeg, "achar": lambda nome: "ffmpeg", "agora": lambda: 1000.0, "executar": _filtros(False),
               "plataforma": "win32", "espera_inicio": 0, **kw}
     return tela.CapturaTela("g/tela.mp4", **opcoes)
 
 
 class TestComando(unittest.TestCase):
-    def test_tela_inteira_2_quadros_por_segundo_sem_audio(self):
+    def test_tela_inteira_pelo_ddagrab_30_por_segundo_so_quando_muda(self):
         c = tela.comando("ffmpeg", "g/tela.mp4")
-        self.assertEqual(c[c.index("-f") + 1], "gdigrab")
-        self.assertEqual(c[c.index("-framerate") + 1], "2")
-        self.assertEqual(c[c.index("-i") + 1], "desktop")
+        self.assertEqual(c[c.index("-f") + 1], "lavfi")
+        self.assertIn("ddagrab=output_idx=0:framerate=30:dup_frames=0", c[c.index("-i") + 1])
+        self.assertEqual(c[c.index("-fps_mode") + 1], "vfr")  # quadro repetido não é gravado
         self.assertIn("-an", c)
         self.assertEqual(c[-1], "g/tela.mp4")
 
-    def test_janela_pelo_titulo(self):
-        c = tela.comando("ffmpeg", "g/tela.mp4", janela="Aula - Zoom")
+    def test_janela_pelo_gdigrab_sem_quadros_repetidos(self):
+        c = tela.comando("ffmpeg", "g/tela.mp4", motor="gdigrab", janela="Aula - Zoom")
         self.assertEqual(c[c.index("-i") + 1], "title=Aula - Zoom")
+        self.assertEqual(c[c.index("-framerate") + 1], "10")
+        self.assertTrue(c[c.index("-vf") + 1].startswith("mpdecimate,"))
 
     def test_ler_progresso(self):
-        self.assertEqual(tela.ler_progresso("out_time_us=1500000\n"), 1.5)
-        self.assertIsNone(tela.ler_progresso("out_time_us=N/A"))
-        self.assertIsNone(tela.ler_progresso("out_time_us=0"))  # nenhum quadro ainda
-        self.assertIsNone(tela.ler_progresso("frame=3"))
+        self.assertEqual(tela.ler_progresso("out_time_us=1500000\n"), ("out_time_us", 1500000))
+        self.assertEqual(tela.ler_progresso("out_time_us=N/A"), ("out_time_us", None))
 
 
 class TestSincronia(unittest.TestCase):
@@ -95,7 +104,8 @@ class TestCaptura(unittest.TestCase):
             _abrir(FfmpegFalso(), achar=lambda nome: None)
 
     def test_inicio_vem_do_progresso_e_parar_pede_q(self):
-        ffmpeg = FfmpegFalso([b"frame=1", b"out_time_us=N/A", b"out_time_us=500000", b"out_time_us=1000000"])
+        ffmpeg = FfmpegFalso([b"frame=0", b"out_time_us=0", b"frame=1", b"out_time_us=N/A",
+                              b"out_time_us=500000", b"out_time_us=1000000"])
         captura = _abrir(ffmpeg, espera_inicio=5)
         self.assertEqual(captura.inicio, 999.5)  # relatório às 1000.0 com 0,5 s de vídeo escrito
         self.assertFalse(captura.inicio_aproximado)
@@ -113,10 +123,27 @@ class TestCaptura(unittest.TestCase):
         self.assertTrue(captura.inicio_aproximado)
 
     def test_parar_diz_se_o_ffmpeg_ja_tinha_parado_sozinho(self):
-        ffmpeg = FfmpegFalso([b"out_time_us=500000"])
+        ffmpeg = FfmpegFalso([b"frame=1", b"out_time_us=500000"])
         captura = _abrir(ffmpeg, espera_inicio=5)
         ffmpeg.vivo = False  # a janela foi fechada no meio
         self.assertFalse(captura.parar())
+
+    def test_usa_o_ddagrab_e_cai_para_o_gdigrab_se_ele_falhar(self):
+        com_ddagrab = FfmpegFalso([b"frame=1", b"out_time_us=0"])
+        captura = _abrir(com_ddagrab, executar=_filtros(True), espera_inicio=5)
+        self.assertEqual((captura.motor, captura.fps, captura.aviso), ("ddagrab", 30, None))
+        self.assertEqual(captura.inicio, 1000.0)  # primeiro quadro com 0 s escritos
+
+        tentativas = [FfmpegFalso(vivo=False, erro=b"Failed to create output duplication"),
+                      FfmpegFalso([b"frame=1", b"out_time_us=0"])]
+        captura = _abrir(lambda comando, **kw: tentativas.pop(0)(comando), executar=_filtros(True), espera_inicio=5)
+        self.assertEqual(captura.motor, "gdigrab")
+        self.assertIn("duplication", captura.aviso)
+
+    def test_ffmpeg_sem_ddagrab_avisa_e_usa_o_gdigrab(self):
+        captura = _abrir(FfmpegFalso([b"frame=1", b"out_time_us=0"]), espera_inicio=5)
+        self.assertEqual((captura.motor, captura.fps), ("gdigrab", 10))
+        self.assertIn("6.1", captura.aviso)
 
 
 if __name__ == "__main__":

@@ -6,46 +6,71 @@ com o mundo real. Uma entrada por teste, a mais nova em cima.
 
 ---
 
-## A fazer — Gravação da tela com o áudio (0.16.0, ainda não rodado)
+## A fazer: gravação da tela, perfil app e Perito (0.16.0, ainda não rodado)
 
-Feito e testado só com dublês. Precisa de um Windows com ffmpeg e Tesseract no PATH e o extra
-`[gravacao]`. Anotar o resultado de cada passo aqui, numa entrada nova com a data.
+Feito e testado só com dublês. Precisa de Windows, ffmpeg e Tesseract no PATH e o extra `[gravacao]`.
+Anotar o resultado de cada passo aqui, numa entrada nova com a data. Parar no primeiro passo que
+quebrar e mandar o erro inteiro.
 
-**1. A tela grava e para direito (1 min).**
-`vatty gravar --tela --duracao 20`. Deixe uma janela com texto grande na tela.
-- Aparece o aviso de privacidade e a linha `tela: tela inteira (2 quadros por segundo)`?
-- A pasta `gravacoes/<data>/` tem `sistema.wav`, `tela.mp4` e `gravacao.json`?
-- O `tela.mp4` abre no player, tem uns 20 s e o texto dá para ler?
-- Anotar: tamanho do `tela.mp4` (MB por minuto), resolução, se apareceu o aviso
-  "o ffmpeg não disse quando gravou o primeiro quadro" (`inicio_aproximado: true` no `gravacao.json`).
+**0. Preparo (2 min).**
+- `ffmpeg -version` (anotar a versão) e `ffmpeg -hide_banner -filters | findstr ddagrab`: aparece uma
+  linha com `ddagrab`? Sem ela, a tela inteira vai pelo `gdigrab` (mais CPU).
+- `tesseract --version` e `tesseract --list-langs` (precisa de `por`).
+- `python -m unittest discover -s tests`: tudo verde?
 
-**2. Ctrl+C no meio.** `vatty gravar --tela` e pare com Ctrl+C depois de uns 30 s.
-- O `tela.mp4` fecha e abre no player? (o ffmpeg não pode morrer junto com o Ctrl+C)
-- Sobrou algum `ffmpeg.exe` rodando no Gerenciador de Tarefas? Não pode sobrar.
+**1. A tela grava e para direito.** `vatty gravar --tela --duracao 20`, com uma janela de texto aberta.
+- Aparece o aviso de privacidade e a linha `tela: tela inteira (ddagrab, até 30 quadros por segundo)`?
+  Se aparecer "Aviso: o ddagrab falhou" ou "não tem o ddagrab", anotar a mensagem inteira.
+- A pasta `gravacoes/<data>/` tem `sistema.wav`, `tela.mp4` e `gravacao.json` (com `motor` e `fps`)?
+- O `tela.mp4` abre no player, tem uns 20 s, o texto dá para ler e o cursor aparece?
+- Anotar: tamanho do `tela.mp4` e se `inicio_aproximado` é `true` no `gravacao.json`.
 
-**3. Uma janela só.** `vatty gravar --tela-janela "<título exato>" --duracao 20` (ex.: o PowerPoint).
-- Grava só a janela? E com um título que não existe, a CLI dá erro claro e não deixa pasta vazia?
-- Feche a janela no meio da gravação: aparece "a gravação da tela parou antes do fim"?
+**2. Peso e tamanho.** `vatty gravar --tela --duracao 120`, mexendo na tela metade do tempo (rolar uma
+página, abrir menus) e deixando parada a outra metade.
+- No Gerenciador de Tarefas, a CPU do `ffmpeg.exe` mexendo e parado.
+- Tamanho do `tela.mp4` (MB por minuto). O áudio picotou?
+- Repetir com `--tela-fps 15` e anotar a diferença.
 
-**4. Sincronia (o mais importante).** Um vídeo ou slides com troca em horários conhecidos e fala
-junto, por exemplo um vídeo do YouTube com slides em tela cheia, ou você trocando slides e dizendo
-"slide dois" na hora da troca: `vatty gravar --mic --tela --transcrever --manter-tela --manter-audio`
-por 3 a 5 minutos.
-- Para 5 trocas de slide, compare o `inicio` no `visual.json` com o `[mm:ss]` da fala que anuncia a troca no
-  `transcricao.txt`. Anotar a diferença de cada uma (o esperado é até ~1 s).
-- Anotar o `sincronia.deslocamento_s` do `visual.json` e os `inicios` do `gravacao.json`. O deslocamento
-  esperado é negativo e pequeno (a tela abre antes do áudio, uns 0,5 a 2 s).
-- Se a diferença for constante (todas adiantadas ou atrasadas no mesmo tanto), a conta do início da tela está
-  errada; se crescer com o tempo, é deriva do relógio (anotar a diferença no começo e no fim).
+**3. Ctrl+C no meio.** `vatty gravar --tela` e pare com Ctrl+C depois de uns 30 s.
+- O `tela.mp4` abre no player? (o ffmpeg não pode morrer junto com o Ctrl+C)
+- Sobrou algum `ffmpeg.exe` rodando? Não pode sobrar.
 
-**5. Limpeza.** Repetir o passo 4 sem `--manter-tela` e com `--apagar-audio`.
-- No fim, a pasta da gravação sumiu e a pasta do vídeo tem `visual.json` e `frames/`?
+**4. Uma janela só.** `vatty gravar --tela-janela "<título exato>" --duracao 20` (ex.: o Bloco de Notas).
+- Linha `tela: <título> (gdigrab, até 10 quadros por segundo)`? Grava só a janela?
+- Com um título que não existe: erro claro e nenhuma pasta vazia em `gravacoes/`?
+- Feche a janela no meio: aparece "a gravação da tela parou antes do fim"?
 
-**6. Falha do visual.** Tire o Tesseract do PATH só nesse terminal e rode `vatty gravar --tela --transcrever --duracao 20`.
-- A CLI sai com código 1, o texto fica salvo e a pasta da gravação (áudio e tela) continua lá?
-- Ponha o Tesseract de volta e rode o comando que ela sugeriu (`vatty gravacoes/<pasta> --visual aula`).
+**5. Perfil app num teste de verdade (o principal).** Escolha um site ou programa e faça um roteiro
+de 3 a 5 minutos, **falando em voz alta** o que faz e o que estranha:
+1. abrir uma tela e esperar carregar;
+2. provocar um erro com aviso que some sozinho (ex.: login com senha errada, formulário vazio);
+3. repetir um passo duas vezes;
+4. rolar uma página longa por uns 5 s;
+5. dizer em voz alta "agora" no exato momento de 3 trocas de tela.
 
-**7. Peso.** Durante o passo 4, olhar o uso de CPU do `ffmpeg.exe` e se o áudio falhou ou picotou.
+`vatty gravar --mic --tela --transcrever --manter-tela --manter-audio`
+- No `visual.json`: o aviso do passo 2 virou `transitorio` com o texto do erro e `regiao`? A rolagem
+  virou `movimento`? A tela do passo 3 aparece como `repetida`?
+- Sincronia: para as 3 trocas do passo 5, compare o `inicio` do evento com o `[mm:ss]` do "agora" no
+  `transcricao.txt`. Anotar a diferença de cada uma (esperado: menos de 0,5 s). Diferença constante =
+  conta do início errada; crescendo com o tempo = deriva do relógio.
+- Anotar: quantos eventos, quantas `telas_lidas`, quanto tempo a leitura da tela levou e o tamanho do
+  `visual.json`. Algum evento importante faltou? Algum lixo sobrou (muitos eventos iguais)?
+
+**6. O Perito.** No Claude Code (sessão reiniciada), peça: "acha os bugs desse teste", dizendo o que
+estava testando e o que esperava.
+- O laudo achou o erro do passo 2 com horário e evidência? A espera e o passo repetido?
+- Alguma coisa inventada (bug sem evidência)? Alguma senha ou e-mail aparecendo no laudo?
+
+**7. Perfil aula na gravação.** `vatty gravar --mic --tela --visual aula --transcrever` com uns slides
+passando (PowerPoint em tela cheia ou vídeo de aula). Os slides saem com o horário certo da fala?
+
+**8. Limpeza e falha.**
+- Repetir um teste curto sem `--manter-tela` e com `--apagar-audio`: a pasta da gravação some e a pasta
+  do vídeo fica com `visual.json` e `frames/`?
+- Tire o Tesseract do PATH só nesse terminal e rode `vatty gravar --tela --transcrever --duracao 20`:
+  sai com código 1, o texto fica salvo e a gravação fica inteira? Volte o Tesseract e rode o comando que
+  ela sugeriu (`vatty gravacoes/<pasta> --visual app`).
 
 ---
 

@@ -90,12 +90,20 @@ def amostrar(caminho, largura: int, altura: int, intervalo: float, abrir=subproc
         raise ErroDeVideo(f"ffmpeg não conseguiu ler {caminho.name}: {erro}")
 
 
-def extrair_quadro(caminho, segundos: float, destino, executar=subprocess.run, achar=shutil.which) -> Path:
-    """Salva em `destino` (.jpg) o quadro do vídeo em `segundos`, no tamanho original."""
+def extrair_quadro(caminho, segundos: float, destino, executar=subprocess.run, achar=shutil.which,
+                   recorte=None) -> Path:
+    """
+    Salva em `destino` (.jpg) o quadro do vídeo em `segundos`, no tamanho original.
+    `recorte` (x0, y0, x1, y1, em fração da tela) salva só esse pedaço.
+    """
     destino = Path(destino)
     destino.parent.mkdir(parents=True, exist_ok=True)
+    filtro = []
+    if recorte:
+        x0, y0, x1, y1 = recorte
+        filtro = ["-vf", f"crop=iw*{x1 - x0:.4f}:ih*{y1 - y0:.4f}:iw*{x0:.4f}:ih*{y0:.4f}"]
     comando = [_achar("ffmpeg", achar), "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
-               "-ss", f"{max(0.0, segundos):.3f}", "-i", str(caminho),
+               "-ss", f"{max(0.0, segundos):.3f}", "-i", str(caminho), *filtro,
                "-frames:v", "1", "-q:v", str(QUALIDADE_JPG), str(destino)]
     saida = executar(comando, capture_output=True)
     if saida.returncode != 0 or not destino.is_file():

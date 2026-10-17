@@ -47,12 +47,12 @@ duas metades compartilham:
 
 | Arquivo | Quem escreve | Conteúdo |
 |---|---|---|
-| `fonte.json` | Fonte | `tipo` (`youtube`, `url`, `arquivo` ou `gravacao`) e, em vídeo de URL: url, título, canal, duração, data, id, capítulos do autor, descrição. `tipo: "url"` é vídeo de outra plataforma (TikTok etc.) e traz `plataforma`; sem capítulos nem legenda, em geral. Gravação com tela traz também `inicios` (`{faixa: horário real de início}`, em segundos do relógio do sistema, com `tela`) e `tela` (`arquivo`, `alvo`, `fps`, `inicio_aproximado`), vindos do `gravacao.json`; gravação sem tela não tem esses campos |
+| `fonte.json` | Fonte | `tipo` (`youtube`, `url`, `arquivo` ou `gravacao`) e, em vídeo de URL: url, título, canal, duração, data, id, capítulos do autor, descrição. `tipo: "url"` é vídeo de outra plataforma (TikTok etc.) e traz `plataforma`; sem capítulos nem legenda, em geral. Gravação com tela traz também `inicios` (`{faixa: horário real de início}`, em segundos do relógio do sistema, com `tela`) e `tela` (`arquivo`, `alvo`, `motor`, `fps`, `inicio_aproximado`), vindos do `gravacao.json`; gravação sem tela não tem esses campos |
 | `transcricao.json` | Legenda ou Motor | metadados (`origem`, modelo, idioma; em gravação com duas faixas, também `faixas`) + segmentos `{inicio, fim, texto}`, um por linha; em gravação com duas faixas, também `falante` |
 | `transcricao.txt` | Texto | parágrafos separados por linha em branco, cada um começando com `[mm:ss]` (`[h:mm:ss]` a partir de 1 h): é o que os agentes leem. Em gravação, `Eu:` / `Outros:` depois do horário; com duas faixas é a **linha do tempo** dos dois |
 | `transcricao-eu.txt`, `transcricao-outros.txt` | Texto | só em gravação com duas faixas: um canal só, cada parágrafo começando com `[mm:ss]` (`[h:mm:ss]` a partir de 1 h) |
 | `falantes.json` | Falantes | só com `--falantes`: `modo` (`agrupar`/`perfis`), `modelo_voz`, `pessoas` (`pessoa`, `fala_s`, `perfil`) e `turnos` (`inicio`, `fim`, `pessoa`). Os segmentos do `transcricao.json` ganham `pessoa` (`Pessoa N`, nome de perfil ou `Desconhecido`); no `transcricao.txt` a pessoa aparece no lugar de `Outros:`. Em gravação só o som do PC é separado |
-| `visual.json` | Visual | só com `--visual`: slides da tela (`eventos`: `tipo`, `inicio`, `fim`, `texto` por OCR, `confianca`, `frame`); o cabeçalho traz `ruido_removido` (linhas que se repetiam em muitos slides, como a barra do navegador) e `slides_sem_texto_descartados`. Em gravação com tela, também `sincronia.deslocamento_s` (já somado aos horários: o `[mm:ss]` do slide é o da fala) |
+| `visual.json` | Visual | só com `--visual`: slides da tela (`eventos`: `tipo`, `inicio`, `fim`, `texto` por OCR, `confianca`, `frame`); o cabeçalho traz `ruido_removido` (linhas que se repetiam em muitos slides, como a barra do navegador) e `slides_sem_texto_descartados`. Em gravação com tela, também `sincronia.deslocamento_s` (já somado aos horários: o `[mm:ss]` do slide é o da fala). Com `perfil: "app"`: eventos `tela`, `transitorio` e `movimento` (este sem texto nem frame), `regiao` quando o texto é só do pedaço que mudou, `repetida` para tela já vista (mesmo `frame`), `telas_lidas` no cabeçalho, e tela sem texto não é descartada |
 | (cabeçalho do `transcricao.json`) | Glossário | `glossario`: `{errado: vezes}`, só se o glossário corrigiu algo |
 | (cabeçalho e segmentos) | Duvidoso | `trechos_duvidosos` no cabeçalho e `duvidoso` (motivo) no segmento, só se o Whisper não confiou; o `transcricao.txt` marca o trecho com `[?]` |
 | `legenda.srt`, `legenda.vtt` | Legenda (código) | `vatty legenda <pasta>`: os segmentos do `transcricao.json` em blocos de até 2 linhas de 42 caracteres |
@@ -138,7 +138,8 @@ Regra: **testar comportamento, não linhas.** Pouco teste bom vale mais que muit
 7. Separação de falantes (`--falantes`, perfis de voz). **(feito, falta confirmar com voz real)**
 8. Secretário (ata em `.docx`/`.pdf`). **(feito, falta confirmar numa reunião real)**
 9. Interface local `vatty ui` (importar, fila, biblioteca, revisão). **(feita; conferida só na nuvem, falta usar no PC)**
-10. Gravação da tela junto com o áudio (`vatty gravar --tela`, Windows) → visual na linha do tempo da fala.
+10. Gravação da tela junto com o áudio (`vatty gravar --tela`, Windows; `ddagrab`, `gdigrab` na janela) e perfil
+    `app` do visual → eventos da tela na linha do tempo da fala.
     **(feito, falta confirmar a captura e a sincronia num Windows real)** Fora por enquanto: pausar,
     Mac/Linux, botão na interface, print "no momento da fala".
 11. Perito: laudo de teste de programa (bugs, lentidão, atrito, comportamento) a partir da gravação

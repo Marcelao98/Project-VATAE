@@ -134,6 +134,10 @@ class TestExtrairQuadro(unittest.TestCase):
             r = quadros.extrair_quadro("v.mp4", 12.5, destino, executar, achar)
             self.assertEqual(r, destino)
             self.assertEqual(chamadas[0][chamadas[0].index("-ss") + 1], "12.500")
+            self.assertNotIn("-vf", chamadas[0])
+            quadros.extrair_quadro("v.mp4", 1, destino, executar, achar, recorte=(0.5, 0.75, 1.0, 1.0))
+            self.assertEqual(chamadas[1][chamadas[1].index("-vf") + 1],
+                             "crop=iw*0.5000:ih*0.2500:iw*0.5000:ih*0.7500")  # só o pedaço que mudou
 
     def test_ffmpeg_sem_imagem_vira_erro(self):
         with tempfile.TemporaryDirectory() as tmp:

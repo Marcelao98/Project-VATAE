@@ -2,21 +2,27 @@
 
 ## 0.16.0 — 2026-10-13
 
-Gravação da tela junto com o áudio, para aula e reunião com slides.
+Gravação da tela junto com o áudio, perfil `app` para quem testa programa e o agente Perito.
 
-- **`vatty gravar --tela`** (ou `--tela-janela "título"`): o ffmpeg grava a tela em segundo plano (`gdigrab`,
-  só Windows) em `tela.mp4`, 2 quadros por segundo, sem som, até 1280 px. O áudio segue pelo `gravacao.py`.
+- **`vatty gravar --tela`** (ou `--tela-janela "título"`): o ffmpeg grava a tela em segundo plano em `tela.mp4`,
+  sem som, com taxa variável (tela parada não grava nada), até 1920 px. Tela inteira pelo **`ddagrab`** (placa de
+  vídeo, até 30 quadros/s); janela, ffmpeg antigo ou `ddagrab` que falha caem no `gdigrab` a 10/s. `--tela-fps`
+  muda a taxa. O áudio segue pelo `gravacao.py`.
+- **Perfil `app`** (`--visual app`, padrão da gravação com tela): 5 comparações por segundo, eventos `tela`,
+  `transitorio` (aviso que pisca) e `movimento` (espera, rolagem); OCR só da região que mudou e tela repetida não é
+  lida de novo. O perfil `aula` continua igual.
 - Aviso de privacidade antes de começar: a tela pode mostrar senha e conversa de terceiros, e fica só no PC.
 - **Sincronia**: cada faixa guarda o horário real de início (`gravacao.json` na pasta da gravação,
   `inicios` no `fonte.json`); os slides são deslocados pela diferença (`sincronia.deslocamento_s` no
   `visual.json`), para o `[mm:ss]` do slide bater com o da fala.
-- Com `--transcrever`, o `tela.mp4` passa pelo `--visual aula` e é apagado; `--manter-tela` guarda. Se o visual
+- Com `--transcrever`, o `tela.mp4` passa pelo `--visual` (`app` ou `aula`) e é apagado; `--manter-tela` guarda. Se o visual
   falhar, o texto fica salvo, a gravação inteira fica para tentar de novo e a CLI sai com código 1.
 - Gravação sem tela continua igual (sem `gravacao.json`, `fonte.json` sem campos novos).
 - Agente novo **Perito** (`.claude/agents/perito.md`): laudo de teste de programa a partir da gravação com tela
   (`pericia-<assunto>.md`: bugs com evidência, gravidade e certeza, lentidão, atrito, comportamento observado e
   passos para reproduzir). "Copiar prompt" da interface ganhou o modelo "Achar bugs". Nunca rodado de verdade.
-- 512 testes (eram 493).
+- README reescrito pelo que a pessoa quer fazer, com todos os agentes, ferramentas e opções.
+- 524 testes (eram 493).
 - **Não verificado em PC real**: a captura da tela com o ffmpeg de verdade e a sincronia com áudio real só
   rodam no Windows; aqui tudo foi provado com dublês. Passo a passo em `docs/testes-reais.md`.
 

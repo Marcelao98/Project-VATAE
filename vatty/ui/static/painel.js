@@ -117,6 +117,7 @@ async function comecar() {
     return;
   }
   const opcoes = opcoesTranscricao();
+  painel.opcoes = opcoes;
   painel.pedido = { fonte: painel.fonte, agentes: opcoes.agentes || [], objetivo: opcoes.objetivo || "", slides: !!opcoes.slides };
   painel.trabalhos = [];
   try {
@@ -230,21 +231,48 @@ function desenharDeck() {
 }
 
 /* ---------- pronto ---------- */
+function trabalhoDosAgentes(pasta) {  // o mais recente da pista dos agentes para esta pasta
+  return [...estado.trabalhos.values()].filter((x) => x.pista === "agentes" && x.entrada === pasta)
+    .sort((a, b) => b.criado - a.criado)[0];
+}
 window.aoMudarFila = function aoMudarFila() {
   if (!painel.trabalhos.length || painel.raiz.dataset.fase === "escolher") return;
   const lista = painel.trabalhos.map((id) => estado.trabalhos.get(id));
   if (lista.every((t) => t && ["pronto", "erro", "cancelado"].includes(t.estado))) {
-    mudarFase("pronto");
-    falar(lista.some((t) => t.estado === "pronto") ? "pronto" : "erro");
-    desenharPronto(lista);
+    // os agentes andam na pista deles: o pronto se redesenha quando eles mudam, sem prender a transcrição
+    const marca = lista.map((t) => { const a = t.pasta && trabalhoDosAgentes(t.pasta); return t.estado + (a ? a.estado + a.etapa : ""); }).join("|");
+    if (painel.raiz.dataset.fase !== "pronto" || marca !== painel.marcaPronto) {
+      painel.marcaPronto = marca;
+      mudarFase("pronto");
+      falar(lista.some((t) => t.estado === "pronto") ? "pronto" : "erro");
+      desenharPronto(lista);
+    }
   }
   desenharDeck();
 };
+function ehBloqueioYoutube(erro) { return /não é robô|not a bot|Sign in to confirm/i.test(erro || ""); }
+async function tentarComLogin(entrada, navegador) {
+  try {
+    const r = await post("trabalhos", { entradas: [entrada], opcoes: { ...(painel.opcoes || {}), cookies: navegador } });
+    painel.trabalhos = r.criados.map((t) => t.id);
+    mudarFase("ouvindo");
+    falar("escrevendo");
+    desenharDeck();
+  } catch (e) { avisoPainel(e.message, true); }
+}
 
 function desenharPronto(lista) {
   const p = painel.pedido || { agentes: [] };
   const partes = lista.map((t) => {
-    if (t.estado !== "pronto") return el("p", { class: "marca" }, nomeCurto(t.entrada) + ": " + (t.erro || "não terminou."));
+    if (t.estado !== "pronto") {
+      const erro = el("p", { class: "marca" }, nomeCurto(t.entrada) + ": " + (t.erro || "não terminou."));
+      if (!ehBloqueioYoutube(t.erro)) return erro;
+      const nav = el("select", { "aria-label": "Navegador" }, ...[["firefox", "Firefox (o mais garantido)"], ["edge", "Edge"], ["chrome", "Chrome"], ["brave", "Brave"]]
+        .map(([v, n]) => el("option", { value: v }, n)));
+      return el("div", { class: "trab" }, erro,
+        el("p", {}, "O YouTube desconfiou do acesso. Dá para tentar de novo usando o login do seu navegador (é só ler os cookies dele, nada é guardado):"),
+        el("div", { class: "linha-btn" }, nav, el("button", { class: "btn btn-principal", onclick: () => tentarComLogin(t.entrada, nav.value) }, "Tentar de novo entrando por ele")));
+    }
     const slug = t.pasta.split(/[\\/]/).pop();
     const bloco = el("div", { class: "trab" }, el("b", {}, slug), el("small", { class: "dica" }, "Guardado em " + t.pasta),
       el("div", { class: "linha-btn" }, el("button", { class: "btn btn-principal", onclick: () => abrirVideo(slug) }, "Abrir o texto")));
@@ -265,13 +293,18 @@ function desenharPronto(lista) {
       const botoes = p.agentes.map((id) => painel.agentes.find((a) => a.id === id)).filter((a) => a && a.prompt).map((a) =>
         el("button", { class: "btn-mini", onclick: () => copiarPrompt(slug, a, p.objetivo, status) }, "Copiar prompt: " + a.faz));
       const arquivos = el("div", { class: "pedido" });
-      bloco.append(el("h3", { style: "margin-top:14px" }, "O que os agentes escreveram"), arquivos,
+      const aj = trabalhoDosAgentes(t.pasta);
+      const andamento = !aj ? null
+        : ["fila", "rodando"].includes(aj.estado) ? el("p", { class: "dica", role: "status" }, "Os agentes estão trabalhando no Claude Code (" + aj.etapa + "). O texto já está salvo: pode gravar ou puxar outra coisa enquanto isso.")
+        : aj.estado === "erro" ? el("p", { class: "marca" }, aj.erro) : null;
+      bloco.append(el("h3", { style: "margin-top:14px" }, "O que os agentes escreveram"), andamento, arquivos,
         el("p", { class: "dica" }, "Faltou algum? No Claude Code, diga ", el("span", { class: "comando-claude" }, "faz os pedidos da Vatty"),
           ", ou copie o prompt para outra IA:"),
         el("div", { class: "pedido" }, ...botoes, status));
       api("video/" + encodeURIComponent(slug)).then((v) => {
         const mds = v.gerados.filter((g) => g.endsWith(".md"));
         arquivos.replaceChildren(...(mds.length ? mds.map((g) => el("a", { class: "btn-mini", href: comToken("arquivo/" + encodeURIComponent(slug) + "/" + encodeURIComponent(g)) }, g))
+          : aj && ["fila", "rodando"].includes(aj.estado) ? []
           : [el("span", { class: "dica" }, painel.claude ? "Nenhum arquivo ainda: veja o log no Terminal (embaixo)." : "Nada ainda: o Claude Code não está neste PC.")]));
       }).catch(() => {});
     }

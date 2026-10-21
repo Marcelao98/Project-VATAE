@@ -52,6 +52,24 @@ class Video:
 
 NAVEGADORES = ("firefox", "edge", "chrome", "brave", "opera", "vivaldi", "chromium", "safari")
 VAR_NAVEGADOR = "VATTY_COOKIES_NAVEGADOR"
+VAR_IPV4 = "VATTY_IPV4"   # a CLI liga quando o YouTube desconfia do acesso (ver cli._do_youtube)
+
+
+def eh_bloqueio(texto: str) -> bool:
+    """O YouTube pediu para provar que não é robô (ou exigiu login)."""
+    return "not a bot" in texto or "Sign in to confirm" in texto or "--cookies" in texto
+
+
+def diagnostico(procurar=None) -> str:
+    """Versão do yt-dlp e runtimes de JavaScript visíveis: explica por que funciona num terminal e não noutro."""
+    import shutil
+    procurar = procurar or shutil.which
+    try:
+        from yt_dlp.version import __version__ as versao
+    except ImportError:
+        versao = "não instalado"
+    sim = lambda nome: "sim" if procurar(nome) else "não"
+    return f"yt-dlp {versao}; Deno: {sim('deno')}; Node: {sim('node')}"
 
 
 def _cookies() -> dict:
@@ -61,7 +79,10 @@ def _cookies() -> dict:
     direto do perfil do navegador; nada é guardado pela Vatty.
     """
     navegador = os.environ.get(VAR_NAVEGADOR, "").strip().lower()
-    return {"cookiesfrombrowser": (navegador,)} if navegador in NAVEGADORES else {}
+    extras = {"cookiesfrombrowser": (navegador,)} if navegador in NAVEGADORES else {}
+    if os.environ.get(VAR_IPV4):
+        extras["source_address"] = "0.0.0.0"  # força IPv4: o YouTube desconfia mais de IPv6
+    return extras
 
 
 def _opcoes(**extras) -> dict:

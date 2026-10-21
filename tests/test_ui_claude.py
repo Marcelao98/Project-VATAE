@@ -54,6 +54,28 @@ class TestClaude(unittest.TestCase):
         self.assertEqual(etapas, ["Agentes trabalhando"])
         self.assertIn(b"pedidos.json", proc.stdin.getvalue())
 
+    def test_claude_que_trava_e_encerrado_no_limite(self):
+        import os
+        r, w = os.pipe()
+        escrita = os.fdopen(w, "wb")
+
+        class Travado(ProcFalso):
+            def __init__(self):
+                super().__init__(b"")
+                self.stdout = os.fdopen(r, "rb")
+
+            def kill(self):
+                escrita.close()  # o cano fecha: a leitura termina, como num processo morto
+
+            def wait(self):
+                return -9
+
+        log = []
+        ctx = SimpleNamespace(cancelado=False, log=log.append, progresso=lambda p, e: None)
+        codigo = claude.rodar("/t/aula", ctx, "claude", popen=lambda argv, **kw: Travado(), cwd="/p", limite_s=0.05)
+        self.assertEqual(codigo, -9)
+        self.assertTrue(any("foi encerrado" in l for l in log))
+
 
 if __name__ == "__main__":
     unittest.main()

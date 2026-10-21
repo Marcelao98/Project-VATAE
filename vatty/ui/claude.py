@@ -13,6 +13,7 @@ frágil). O Claude Code só pode ler e escrever arquivos: nada de terminal.
 import json
 import shutil
 import subprocess
+import threading
 from pathlib import Path
 
 from . import runner
@@ -21,6 +22,7 @@ from .fila import Cancelado
 PROJETO = Path(__file__).resolve().parent.parent.parent   # onde estão o CLAUDE.md e .claude/agents/
 FERRAMENTAS = "Read,Write,Edit,Glob,Grep,Task,Agent"         # Task/Agent: o nome muda entre versões
 TEXTO_MAX = 300
+LIMITE_S = 30 * 60   # passou disso, o Claude Code é encerrado (travou esperando login, por exemplo)
 
 
 def achar(procurar=shutil.which) -> str | None:
@@ -61,7 +63,7 @@ def resumir(linha: str) -> str | None:
     return None
 
 
-def rodar(pasta, ctx, exe: str, popen=subprocess.Popen, cwd=PROJETO) -> int:
+def rodar(pasta, ctx, exe: str, popen=subprocess.Popen, cwd=PROJETO, limite_s: float = LIMITE_S) -> int:
     """Roda o Claude Code para a pasta, mostrando o andamento no log do trabalho. Devolve o código de saída."""
     ctx.progresso(None, "Agentes trabalhando")
     proc = popen(montar_argv(exe, pasta), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -71,6 +73,15 @@ def rodar(pasta, ctx, exe: str, popen=subprocess.Popen, cwd=PROJETO) -> int:
         proc.stdin.close()
     except OSError:
         pass
+    estourou = threading.Event()
+
+    def encerrar():
+        estourou.set()
+        proc.kill()
+
+    relogio = threading.Timer(limite_s, encerrar)
+    relogio.daemon = True
+    relogio.start()
     try:
         for linha in runner._linhas(proc.stdout):
             if ctx.cancelado:
@@ -81,7 +92,12 @@ def rodar(pasta, ctx, exe: str, popen=subprocess.Popen, cwd=PROJETO) -> int:
                 ctx.log(resumo)
             elif not linha.lstrip().startswith("{"):
                 ctx.log(linha)  # mensagem solta do Claude Code (ex.: não está logado)
-        return proc.wait()
+        codigo = proc.wait()
+        if estourou.is_set():
+            ctx.log(f"Aviso: o Claude Code passou de {int(limite_s // 60)} minutos e foi encerrado.")
+        return codigo
     except Cancelado:
         proc.wait()
         raise
+    finally:
+        relogio.cancel()

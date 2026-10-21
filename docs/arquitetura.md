@@ -252,7 +252,13 @@ compara dois vídeos). Não criar agente novo sem necessidade real.
   `claude.py` roda o Claude Code local (`claude -p --output-format stream-json --permission-mode acceptEdits`,
   `--allowedTools Read,Write,Edit,Glob,Grep,Task,Agent`, `--add-dir` da pasta) na pasta do projeto, com o
   pedido pelo stdin, e resume o stream no log ("Chamando o agente X...", "Escrevendo Y.md"). Falha dele vira
-  aviso: o trabalho termina pronto, porque o texto já está salvo.
+  aviso: o trabalho termina pronto, porque o texto já está salvo. A fila tem duas **pistas** (`transcricao` e
+  `agentes`), cada uma com o seu trabalhador: a transcrição termina e enfileira os agentes (`ctx.enfileirar`),
+  então o Claude Code (lento, pode travar ou faltar) nunca prende gravação nem transcrição. Limite de 30 min.
+- YouTube: o bloqueio "prove que não é robô" é tratado em camadas, na ordem que costuma resolver: yt-dlp
+  atualizado (o `.bat` atualiza), runtime de JavaScript (Deno/Node, checado na saúde), nova tentativa forçando
+  IPv4 (`VATTY_IPV4` → `source_address`), e por fim os cookies do navegador (`--cookies-navegador`, botão na tela
+  de erro). O erro traz `fonte.diagnostico()` (versão do yt-dlp, Deno, Node).
   Front: `painel.js`/`painel.css`, as mesmas peças (fonte, depois, ouvindo, pronto, resumo) em três arranjos
   por `data-modo` (passos, bancada, estudio); o modo fica no `localStorage`. O servidor descarta o corpo de
   um POST que a rota não leu (sobrava na conexão e a próxima requisição chegava como `{}GET`).

@@ -25,6 +25,13 @@ if errorlevel 1 (
   exit /b 1
 )
 
+rem O YouTube muda toda hora: yt-dlp velho e a causa numero 1 de bloqueio. Sem internet, segue assim mesmo.
+".venv\Scripts\python.exe" -m pip install -q --disable-pip-version-check -U "yt-dlp[default,curl-cffi]" >nul 2>&1
+where deno >nul 2>&1 || where node >nul 2>&1 || (
+  echo.
+  echo Aviso: sem o Deno o YouTube bloqueia mais. Para instalar: winget install DenoLand.Deno
+)
+
 echo.
 ".venv\Scripts\python.exe" -m vatty.cli ui
 pause

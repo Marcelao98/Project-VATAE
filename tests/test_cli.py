@@ -198,6 +198,24 @@ class TestOutraPlataforma(unittest.TestCase):
         self.assertIn("curl-cffi", cli._erro_download(RuntimeError("Impersonate target unavailable")))
         robo = cli._erro_download(RuntimeError("Sign in to confirm you’re not a bot. Use --cookies-from-browser"))
         self.assertIn("--cookies-navegador firefox", robo)
+        self.assertIn("yt-dlp", robo.splitlines()[-1])  # o diagnóstico vai junto
+
+    def test_bloqueio_do_youtube_tenta_de_novo_por_ipv4_uma_vez(self):
+        chamadas = []
+
+        def ler(args):
+            chamadas.append(cli.os.environ.get(cli.fonte.VAR_IPV4))
+            if len(chamadas) == 1:
+                raise cli._TentarIPv4()
+            return "ok"
+
+        args = argparse.Namespace()
+        with mock.patch.object(cli, "_ler_url", ler), mock.patch.dict(cli.os.environ, {}, clear=False), \
+                redirect_stdout(io.StringIO()) as out:
+            cli.os.environ.pop(cli.fonte.VAR_IPV4, None)
+            self.assertEqual(cli._do_youtube(args), "ok")
+        self.assertEqual(chamadas, [None, "1"])
+        self.assertIn("IPv4", out.getvalue())
 
 
 class _Tom:

@@ -258,6 +258,14 @@ class TestCookiesDoNavegador(unittest.TestCase):
         with mock.patch.dict("os.environ", {}, clear=True):
             self.assertNotIn("cookiesfrombrowser", fonte._opcoes())
 
+    def test_ipv4_e_diagnostico(self):
+        from unittest import mock
+        with mock.patch.dict("os.environ", {fonte.VAR_IPV4: "1"}):
+            self.assertEqual(fonte._opcoes()["source_address"], "0.0.0.0")
+        self.assertIn("Deno: sim; Node: não", fonte.diagnostico(lambda nome: nome == "deno"))
+        self.assertTrue(fonte.eh_bloqueio("ERROR: Sign in to confirm you’re not a bot"))
+        self.assertFalse(fonte.eh_bloqueio("HTTP Error 404"))
+
 
 if __name__ == "__main__":
     unittest.main()

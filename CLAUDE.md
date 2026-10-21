@@ -87,10 +87,11 @@ ficam como sempre: um `transcricao.txt` só, e `Eu:` na frente quando há
 `falante`.
 
 **Pedidos do painel.** Quando a pessoa escolhe "chamar os agentes" no painel (`vatty ui`, aba Começar),
-o código anota em `pedidos.json` na pasta do vídeo e, se houver Claude Code no PC, roda `claude -p` na
+o código anota em `pedidos.json` na pasta do vídeo e põe um trabalho na **pista dos agentes** da fila (trabalhador
+próprio: gravar e transcrever nunca esperam por ele). Se houver Claude Code no PC, ela roda `claude -p` na
 pasta do projeto (`vatty/ui/claude.py`, pedido pelo stdin, só ferramentas de ler e escrever arquivo) para
-fazer os pedidos daquela pasta, sem perguntar nada. Sem Claude Code, ou se ele falhar, o pedido fica
-pendente. Quando a pessoa disser "faz os pedidos da Vatty" (ou o painel mandar), a conversa principal procura `transcricoes/*/pedidos.json` com `estado: pendente`,
+fazer os pedidos daquela pasta, sem perguntar nada, com limite de 30 min. Sem Claude Code, ou se ele falhar,
+só o trabalho dos agentes dá erro e o pedido fica pendente. Quando a pessoa disser "faz os pedidos da Vatty" (ou o painel mandar), a conversa principal procura `transcricoes/*/pedidos.json` com `estado: pendente`,
 monta o briefing de cada um (pasta, `objetivo` como foco/nível/o que foi testado, extensão `medio`,
 arquivo de saída, data; o Tradutor ainda precisa do idioma, então pergunte), chama o agente e, no fim,
 troca o `estado` para `feito` e acrescenta `arquivo` com o que foi escrito.

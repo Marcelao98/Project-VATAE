@@ -228,12 +228,27 @@ def _erro_download(e) -> str:
     texto = str(e)
     if "mpersonat" in texto or "Unexpected response from webpage request" in texto:
         texto += f"\n{DICA_IMITAR_NAVEGADOR}"
-    if "not a bot" in texto or "Sign in to confirm" in texto or "--cookies" in texto:
-        texto += f"\n{DICA_LOGIN}"
+    if fonte.eh_bloqueio(texto):
+        texto += f"\n{DICA_LOGIN}\n({fonte.diagnostico()})"
     return f"não consegui ler/baixar o vídeo: {texto}"
 
 
+class _TentarIPv4(Exception):
+    """O YouTube bloqueou: vale uma segunda tentativa forçando IPv4."""
+
+
 def _do_youtube(args):
+    """Lê a URL; se o YouTube pedir "prove que não é robô", tenta uma vez de novo por IPv4."""
+    try:
+        return _ler_url(args)
+    except _TentarIPv4:
+        _fechar_sessao(args)
+        os.environ[fonte.VAR_IPV4] = "1"
+        print("O YouTube desconfiou do acesso. Tentando de novo por IPv4...")
+        return _ler_url(args)
+
+
+def _ler_url(args):
     """
     URL de vídeo (YouTube, TikTok, o que o yt-dlp suportar) -> (pasta, fonte.json, resultado).
     Legenda primeiro, Whisper se o usuário quiser. A página é lida UMA vez (`fonte.Sessao`): o TikTok
@@ -283,6 +298,8 @@ def _do_youtube(args):
             # o áudio some junto com a pasta temporária: só o texto fica
             return destino, video.para_json(), resultado
     except DownloadError as e:
+        if fonte.eh_bloqueio(str(e)) and not os.environ.get(fonte.VAR_IPV4):
+            raise _TentarIPv4() from e
         raise Erro(_erro_download(e)) from e
 
 

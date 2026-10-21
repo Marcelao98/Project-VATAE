@@ -29,7 +29,14 @@ Painel "Começar" no `vatty ui`.
   e o navegador falava ora com uma, ora com outra. Agora a porta é exclusiva; se a 8765 estiver ocupada, abre
   noutra e avisa. Erros do servidor vão para `vatty-ui-erros.log`, a tela diz quando perdeu a conexão, e link
   recusado mostra o motivo (antes: "Algo deu errado (400)").
-- 548 testes (eram 524). Conferido no Chromium da nuvem com uma gravação falsa nos três modos, no celular
+- **Gravar e transcrever não dependem mais do Claude Code**: os agentes andam numa pista própria da fila, com
+  trabalhador próprio. A transcrição fica pronta na hora; os agentes aparecem como outro item ("Agentes ·
+  pasta") e, se o Claude falhar, travar (limite de 30 min) ou não existir, só esse item dá erro.
+- **YouTube mais resistente**: quando ele pede "prove que não é robô", a Vatty tenta de novo sozinha por IPv4;
+  o erro traz a versão do yt-dlp e se há Deno/Node (para entender por que o terminal funciona e a interface
+  não); a tela de erro tem "Tentar de novo entrando pelo navegador"; a saúde avisa se falta o Deno; o
+  `abrir-vatty.bat` atualiza o yt-dlp a cada abertura.
+- 551 testes (eram 524). Conferido no Chromium da nuvem com uma gravação falsa nos três modos, no celular
   (390 px) e no tema claro, sem erro no console. **Não verificado**: gravar de verdade pelo painel no Windows.
 
 ## 0.16.0 — 2026-10-13

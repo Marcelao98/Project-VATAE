@@ -14,7 +14,7 @@ from pathlib import Path
 
 from .. import fonte
 from . import claude, pedidos
-from .fila import Cancelado
+from .fila import AGENTES, Cancelado
 
 OPCOES_TEXTO = ("legenda", "whisper")
 OPCOES_VISUAL = ("nenhum", "aula", "app")
@@ -114,6 +114,8 @@ def _linhas(fluxo):
 
 def executar(trabalho, ctx, saida, popen=subprocess.Popen, achar_claude=None) -> str:
     """Roda a CLI para o trabalho. Devolve a pasta do vídeo. `popen` entra por parâmetro para os testes."""
+    if trabalho.pista == AGENTES:
+        return executar_agentes(trabalho, ctx, popen, achar_claude or claude.achar)
     opcoes = dict(trabalho.opcoes)
     padrao = Path(saida) / "glossario.txt"  # as correções que a pessoa guardou na revisão valem para os próximos
     if "glossario" not in opcoes and padrao.is_file():
@@ -148,8 +150,9 @@ def executar(trabalho, ctx, saida, popen=subprocess.Popen, achar_claude=None) ->
     if opcoes.get("slides"):
         _fazer_slides(pasta, ctx)
     anotados = pedidos.registrar(pasta, opcoes.get("agentes"), opcoes.get("objetivo", ""))
-    if anotados:
-        _agentes(pasta, anotados, ctx, popen, achar_claude or claude.achar)
+    if anotados:  # os agentes vão para a pista deles: a transcrição termina agora, com ou sem Claude
+        ctx.enfileirar(pasta, {"agentes": anotados}, AGENTES)
+        ctx.log("Pedido anotado para: " + ", ".join(pedidos.AGENTES[a][0] for a in anotados) + ". Os agentes vêm em seguida.")
     return pasta
 
 
@@ -164,15 +167,16 @@ def _fazer_slides(pasta, ctx) -> None:
         ctx.log(f"Aviso: sem slides: {e}")
 
 
-def _agentes(pasta, anotados, ctx, popen, achar_claude) -> None:
-    """Chama o Claude Code local para os pedidos. Se faltar ou falhar, o texto já está salvo: só avisa."""
-    nomes = ", ".join(pedidos.AGENTES[a][0] for a in anotados)
+def executar_agentes(trabalho, ctx, popen, achar_claude) -> str:
+    """Pista dos agentes: roda o Claude Code local na pasta. Falha aqui nunca mexe no texto, que já está salvo."""
+    pasta = trabalho.entrada
     exe = achar_claude()
     if not exe:
-        ctx.log(f"Aviso: pedido anotado para {nomes}, mas o Claude Code não está instalado neste PC. "
-                "Instale e diga \"faz os pedidos da Vatty\", ou use \"copiar prompt\".")
-        return
-    ctx.log(f"Chamando o Claude Code para: {nomes}.")
+        raise RuntimeError("O Claude Code não está instalado neste PC. O texto está salvo e o pedido ficou anotado: "
+                           "instale o Claude Code e diga \"faz os pedidos da Vatty\", ou use \"copiar prompt\".")
+    nomes = ", ".join(pedidos.AGENTES[a][0] for a in trabalho.opcoes.get("agentes", []) if a in pedidos.AGENTES)
+    ctx.log(f"Chamando o Claude Code para: {nomes or 'os pedidos pendentes'}.")
     if claude.rodar(pasta, ctx, exe, popen=popen) != 0:
-        ctx.log("Aviso: os agentes não terminaram (veja acima). O texto está salvo e o pedido continua anotado: "
-                "no Claude Code, diga \"faz os pedidos da Vatty\".")
+        raise RuntimeError("Os agentes não terminaram (veja o log). O texto está salvo e o pedido continua anotado: "
+                           "no Claude Code, diga \"faz os pedidos da Vatty\".")
+    return pasta

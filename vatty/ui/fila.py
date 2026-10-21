@@ -14,6 +14,10 @@ from dataclasses import dataclass, field
 LOG_MAX = 500  # linhas guardadas por trabalho (o terminal mostra o fim)
 
 FILA, RODANDO, PRONTO, ERRO, CANCELADO = "fila", "rodando", "pronto", "erro", "cancelado"
+# Pistas: cada uma tem o seu trabalhador. Os agentes (Claude Code) andam numa pista própria, então
+# gravar e transcrever nunca esperam por eles, nem param se o Claude travar ou não existir.
+TRANSCRICAO, AGENTES = "transcricao", "agentes"
+PISTAS = (TRANSCRICAO, AGENTES)
 ENCERRADOS = (PRONTO, ERRO, CANCELADO)
 
 
@@ -31,12 +35,13 @@ class Trabalho:
     inicio: float | None = None
     fim: float | None = None
     log: list = field(default_factory=list)
+    pista: str = TRANSCRICAO
 
     def resumo(self) -> dict:
         """O que vai para a tela (sem o log inteiro)."""
         return {"id": self.id, "entrada": self.entrada, "estado": self.estado, "progresso": self.progresso,
                 "etapa": self.etapa, "pasta": self.pasta, "erro": self.erro, "criado": self.criado,
-                "inicio": self.inicio, "fim": self.fim}
+                "inicio": self.inicio, "fim": self.fim, "pista": self.pista}
 
 
 class Cancelado(Exception):
@@ -67,17 +72,18 @@ class Fila:
             return self._trabalhos.get(id_)
 
     # --- ações ---
-    def adicionar(self, entrada: str, opcoes: dict | None = None) -> Trabalho:
+    def adicionar(self, entrada: str, opcoes: dict | None = None, pista: str = TRANSCRICAO) -> Trabalho:
         entrada = (entrada or "").strip()
         if not entrada:
             raise ValueError("Entrada vazia.")
         with self._trava:
-            t = Trabalho(id=uuid.uuid4().hex[:8], entrada=entrada, opcoes=dict(opcoes or {}), criado=self._agora())
+            t = Trabalho(id=uuid.uuid4().hex[:8], entrada=entrada, opcoes=dict(opcoes or {}), criado=self._agora(),
+                         pista=pista if pista in PISTAS else TRANSCRICAO)
             self._trabalhos[t.id] = t
             self._ordem.append(t.id)
             self._cancelar[t.id] = threading.Event()
             self._publicar({"tipo": "trabalho", "trabalho": t.resumo()})
-            self._acorda.notify()
+            self._acorda.notify_all()
             return t
 
     def cancelar(self, id_: str) -> bool:
@@ -97,7 +103,7 @@ class Fila:
             t = self._trabalhos.get(id_)
             if not t or t.estado not in (ERRO, CANCELADO):
                 return None
-            return self.adicionar(t.entrada, t.opcoes)
+            return self.adicionar(t.entrada, t.opcoes, t.pista)
 
     # --- eventos ---
     def assinar(self):
@@ -122,16 +128,16 @@ class Fila:
         self._publicar({"tipo": "trabalho", "trabalho": t.resumo()})
 
     # --- execução ---
-    def _proximo(self):
+    def _proximo(self, pista: str = TRANSCRICAO):
         for i in self._ordem:
-            if self._trabalhos[i].estado == FILA:
+            if self._trabalhos[i].estado == FILA and self._trabalhos[i].pista == pista:
                 return self._trabalhos[i]
         return None
 
-    def processar_um(self) -> bool:
-        """Roda o próximo da fila (se houver). Devolve se rodou algo. Os testes chamam isto direto."""
+    def processar_um(self, pista: str = TRANSCRICAO) -> bool:
+        """Roda o próximo da pista (se houver). Devolve se rodou algo. Os testes chamam isto direto."""
         with self._trava:
-            t = self._proximo()
+            t = self._proximo(pista)
             if not t:
                 return False
             t.estado, t.inicio, t.etapa = RODANDO, self._agora(), "Começando"
@@ -155,8 +161,9 @@ class Fila:
     def iniciar(self) -> None:
         if self._thread:
             return
-        self._thread = threading.Thread(target=self._laco, name="fila-vatty", daemon=True)
-        self._thread.start()
+        self._thread = [threading.Thread(target=self._laco, args=(p,), name=f"fila-vatty-{p}", daemon=True) for p in PISTAS]
+        for t in self._thread:
+            t.start()
 
     def parar(self) -> None:
         self._parar.set()
@@ -165,11 +172,11 @@ class Fila:
                 e.set()
             self._acorda.notify_all()
 
-    def _laco(self) -> None:
+    def _laco(self, pista: str = TRANSCRICAO) -> None:
         while not self._parar.is_set():
-            if not self.processar_um():
+            if not self.processar_um(pista):
                 with self._acorda:
-                    if not self._parar.is_set() and not self._proximo():
+                    if not self._parar.is_set() and not self._proximo(pista):
                         self._acorda.wait(timeout=1.0)
 
 
@@ -182,6 +189,10 @@ class Contexto:
     @property
     def cancelado(self) -> bool:
         return self._cancelar.is_set()
+
+    def enfileirar(self, entrada: str, opcoes: dict, pista: str):
+        """Cria outro trabalho (ex.: os agentes de uma pasta pronta), sem prender este."""
+        return self._fila.adicionar(entrada, opcoes, pista)
 
     def log(self, linha: str) -> None:
         with self._fila._trava:

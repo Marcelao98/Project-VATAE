@@ -34,6 +34,9 @@ def checar(procurar=shutil.which, tem_modulo=_tem_modulo, modelo_em_cache=_model
          "O modelo (cerca de 1,5 GB) baixa sozinho na primeira transcrição. Precisa de internet só nessa vez."),
         ("yt-dlp", "Baixar de links (yt-dlp)", tem_modulo("yt_dlp"), ESSENCIAL,
          "Rode: pip install -U yt-dlp"),
+        ("js", "YouTube: Deno (JavaScript)", bool(procurar("deno") or procurar("node")), OPCIONAL,
+         "O YouTube exige um runtime de JavaScript para liberar o vídeo; sem ele, bloqueia mais ('prove que não é "
+         "robô'). Windows: winget install DenoLand.Deno, e abra a Vatty de novo."),
         ("tesseract", "Ler slides (Tesseract)", bool(procurar("tesseract")), OPCIONAL,
          "Só para a opção 'Ler os slides'. Instale o Tesseract com o idioma português."),
         ("falantes", "Separar quem falou (sherpa-onnx)", tem_modulo("sherpa_onnx"), OPCIONAL,

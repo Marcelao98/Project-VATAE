@@ -92,7 +92,7 @@ class TestExecutar(unittest.TestCase):
         t, _ = rodar(b"Transcrevendo...\n")
         self.assertEqual(t.estado, f.ERRO)
 
-    def test_pedido_de_agente_fica_anotado_na_pasta(self):
+    def test_agentes_vao_para_a_pista_deles_e_sem_claude_a_transcricao_continua_pronta(self):
         with tempfile.TemporaryDirectory() as pasta:
             proc = ProcFalso(f"Pronto em 0:42 (texto de whisper, 180s de áudio): {pasta}\n".encode())
             fila = f.Fila(lambda t, c: runner.executar(t, c, "transcricoes", popen=lambda *a, **k: proc,
@@ -100,29 +100,30 @@ class TestExecutar(unittest.TestCase):
             with tempfile.NamedTemporaryFile() as arq:
                 t = fila.adicionar(arq.name, {"agentes": ["escrivao"], "objetivo": "juros"})
                 fila.processar_um()
-            self.assertEqual(t.estado, f.PRONTO)
+            self.assertEqual(t.estado, f.PRONTO)  # pronto na hora, sem esperar o Claude
             self.assertTrue((Path(pasta) / "pedidos.json").is_file())
-            self.assertTrue(any("Claude Code não está instalado" in l for l in t.log))  # sem ele, só anota
+            (agentes,) = [x for x in fila.trabalhos() if x["pista"] == f.AGENTES]
+            self.assertEqual((agentes["entrada"], agentes["estado"]), (pasta, f.FILA))
+            fila.processar_um(f.AGENTES)
+            self.assertIn("não está instalado", fila.trabalho(agentes["id"]).erro)
+            self.assertEqual(t.estado, f.PRONTO)
 
-    def test_com_claude_code_chama_os_agentes_e_falha_dele_nao_derruba_a_transcricao(self):
+    def test_falha_do_claude_fica_no_trabalho_dos_agentes(self):
         with tempfile.TemporaryDirectory() as pasta:
-            transcricao = ProcFalso(f"Pronto em 0:42 (texto de whisper, 180s de áudio): {pasta}\n".encode())
             agentes = ProcFalso(b'{"type":"result","is_error":true,"result":"Not logged in"}\n', codigo=1)
             agentes.stdin = io.BytesIO()
             chamadas = []
 
             def popen(argv, **k):
                 chamadas.append(argv)
-                return transcricao if len(chamadas) == 1 else agentes
+                return agentes
 
             fila = f.Fila(lambda t, c: runner.executar(t, c, "transcricoes", popen=popen, achar_claude=lambda: "claude"))
-            with tempfile.NamedTemporaryFile() as arq:
-                t = fila.adicionar(arq.name, {"agentes": ["perito"]})
-                fila.processar_um()
-            self.assertEqual(t.estado, f.PRONTO)  # o texto está salvo mesmo com o erro dos agentes
-            self.assertEqual(chamadas[1][:2], ["claude", "-p"])
+            t = fila.adicionar(pasta, {"agentes": ["perito"]}, f.AGENTES)
+            fila.processar_um(f.AGENTES)
+            self.assertEqual(t.estado, f.ERRO)
+            self.assertEqual(chamadas[0][:2], ["claude", "-p"])
             self.assertIn("Erro dos agentes: Not logged in", t.log)
-            self.assertTrue(any(l.startswith("Aviso: os agentes não terminaram") for l in t.log))
 
     def test_slides_pedidos_sem_visual_viram_aviso_e_nao_erro(self):
         with tempfile.TemporaryDirectory() as pasta:

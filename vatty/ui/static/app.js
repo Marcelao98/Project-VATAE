@@ -110,7 +110,7 @@ function itemFila(t) {
   if (t.estado === "pronto" && t.pasta) acoes.append(el("button", { class: "btn-mini", onclick: () => abrirVideo(t.pasta.split(/[\\/]/).pop()) }, "Abrir"));
   acoes.append(el("button", { class: "btn-mini", onclick: () => verLog(t.id) }, "Log"));
   return el("div", { class: "item", "data-id": t.id },
-    el("div", { class: "nome" }, nomeCurto(t.entrada), el("small", {}, detalhe)),
+    el("div", { class: "nome" }, (t.pista === "agentes" ? "Agentes · " : "") + nomeCurto(t.entrada), el("small", {}, detalhe)),
     costura, el("span", { class: "estado " + CLASSE[t.estado] }, ROTULO[t.estado]), acoes);
 }
 function desenharFila() {

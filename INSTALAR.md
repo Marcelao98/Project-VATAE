@@ -45,8 +45,8 @@ Feche e abra o PowerShell (para o PATH valer). O Tesseract não entra no PATH so
 `C:\Program Files\Tesseract-OCR` mesmo assim. No instalador dele, marque o idioma **Portuguese**.
 
 ```powershell
-git clone https://github.com/Marcelao98/NattyATA.git
-cd NattyATA
+git clone https://github.com/Marcelao98/Project-VATAE.git
+cd Project-VATAE
 ```
 
 Depois é só dar **dois cliques em `abrir-vatty.bat`**: na primeira vez ele cria o ambiente, instala tudo e abre
@@ -77,8 +77,8 @@ na sua conta.
 3. **O projeto:**
 
    ```bash
-   git clone https://github.com/Marcelao98/NattyATA.git
-   cd NattyATA
+   git clone https://github.com/Marcelao98/Project-VATAE.git
+   cd Project-VATAE
    ./abrir-vatty.sh
    ```
 

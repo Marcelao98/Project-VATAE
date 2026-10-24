@@ -12,6 +12,7 @@ tem Discord. Até a versão 0.9.0 o projeto se chamava Natty-ATA.
 - Persona e voz: `AGENTS.md`. Fluxograma: `docs/fluxo.md`.
 - Detalhe por módulo, legenda, visual e agentes: `docs/arquitetura.md` (ler só quando mexer nessa parte).
 - Testes feitos no PC real: `docs/testes-reais.md`.
+- Instalar (Windows e Linux): `INSTALAR.md`; pelo Claude Code, a skill `instalar-vatty`.
 
 ## Persona (resumo)
 
@@ -156,7 +157,7 @@ Regra: **testar comportamento, não linhas.** Pouco teste bom vale mais que muit
 10. Gravação da tela junto com o áudio (`vatty gravar --tela`, Windows; `ddagrab`, `gdigrab` na janela) e perfil
     `app` do visual → eventos da tela na linha do tempo da fala.
     **(feito, falta confirmar a captura e a sincronia num Windows real)** Fora por enquanto: pausar,
-    Mac/Linux, print "no momento da fala" (o botão na interface veio no item 12).
+    Mac, print "no momento da fala" (o botão na interface veio no item 12; o Linux, no item 14).
 11. Perito: laudo de teste de programa (bugs, lentidão, atrito, comportamento) a partir da gravação
     com tela. **(feito; nunca rodado de verdade)**
 12. Painel "Começar" no `vatty ui`: gravar áudio, gravar tela e áudio ou puxar do YouTube, e só guardar ou
@@ -164,6 +165,9 @@ Regra: **testar comportamento, não linhas.** Pouco teste bom vale mais que muit
     nuvem com gravação falsa, falta gravar de verdade pelo painel no Windows)**
 13. Slides com os prints (`vatty slides`, opção no painel) e login do navegador para o YouTube
     (`--cookies-navegador`). **(feito; slides conferidos com imagens sintéticas, login não testado no YouTube)**
+14. Linux (Fedora): gravar o som (PipeWire pelo ffmpeg) e a tela (X11: `x11grab`; Wayland: portal + GStreamer,
+    `tela_portal.py`), `abrir-vatty.sh` e guia de instalação em duas versões (`INSTALAR.md` e a skill
+    `instalar-vatty`). **(feito; tela X11 gravada de verdade numa tela virtual; áudio PipeWire e Wayland só no PC)**
 
 ## Comandos
 

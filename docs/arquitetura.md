@@ -94,6 +94,15 @@ apagado, para tentar de novo.
   acumularia a espera do ffmpeg. `deslocamento` (início da tela menos o do
   áudio) e `sincronizar` (soma aos eventos do visual, corta no zero) são puros.
   A captura real não tem teste automático (ver `docs/testes-reais.md`).
+- **Linux.** `gravacao._abrir_linux`: um ffmpeg por faixa lendo o PipeWire/PulseAudio (`-f pulse`), o som do PC
+  pela fonte "monitor" do alto-falante padrão e o microfone padrão (`pactl get-default-sink/source`, ou os nomes
+  especiais `@DEFAULT_MONITOR@`/`@DEFAULT_SOURCE@`), já em int16 mono 16 kHz; a mesma `gravar()` de relógio
+  serve. Tela: `tela.abrir()` escolhe o caminho. X11 → `x11grab` no mesmo `CapturaTela` do Windows. Wayland →
+  `tela_portal.py`: o portal ScreenCast pelo D-Bus (`jeepney`), que devolve um nó do PipeWire e um descritor; o
+  `gst-launch-1.0 -e pipewiresrc ... x264enc|openh264enc ! mp4mux` grava; `restore_token` em
+  `~/.vatty/portal-tela.txt` para não perguntar de novo; para com SIGINT. Início da tela aproximado no Wayland.
+  O `mpdecimate` guarda um quadro a cada 2 s e `tela.sincronizar(..., duracao)` leva a última tela até o fim do
+  áudio: tela parada no fim fazia o vídeo "acabar" antes (provado com o `x11grab` real).
 - `quadros.py`: vídeo → quadros via ffmpeg: um quadro pequeno em cinza a cada
   intervalo (em fluxo, nunca vai ao disco) e a extração de um quadro JPG em
   boa qualidade num horário (inteiro ou só um `recorte`).

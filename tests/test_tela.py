@@ -68,7 +68,7 @@ class TestComando(unittest.TestCase):
         c = tela.comando("ffmpeg", "g/tela.mp4", motor="gdigrab", janela="Aula - Zoom")
         self.assertEqual(c[c.index("-i") + 1], "title=Aula - Zoom")
         self.assertEqual(c[c.index("-framerate") + 1], "10")
-        self.assertTrue(c[c.index("-vf") + 1].startswith("mpdecimate,"))
+        self.assertTrue(c[c.index("-vf") + 1].startswith("mpdecimate=max=20,"))
 
     def test_ler_progresso(self):
         self.assertEqual(tela.ler_progresso("out_time_us=1500000\n"), ("out_time_us", 1500000))
@@ -94,6 +94,7 @@ class TestSincronia(unittest.TestCase):
         self.assertEqual(saida["sincronia"], {"deslocamento_s": -1.5})
         self.assertEqual(saida["perfil"], "aula")
         self.assertEqual(tela.sincronizar(dados, 2.0)["eventos"][0]["inicio"], 2.0)
+        self.assertEqual(tela.sincronizar(dados, -1.5, duracao=30.0)["eventos"][-1]["fim"], 30.0)  # tela parada no fim
 
 
 class TestCaptura(unittest.TestCase):
@@ -144,6 +145,36 @@ class TestCaptura(unittest.TestCase):
         captura = _abrir(FfmpegFalso([b"frame=1", b"out_time_us=0"]), espera_inicio=5)
         self.assertEqual((captura.motor, captura.fps), ("gdigrab", 10))
         self.assertIn("6.1", captura.aviso)
+
+
+
+class TestLinux(unittest.TestCase):
+    def test_x11_grava_pelo_x11grab_e_recusa_janela(self):
+        c = tela.comando("ffmpeg", "g/tela.mp4", motor="x11grab", exibicao=":1")
+        self.assertEqual((c[c.index("-f") + 1], c[c.index("-i") + 1]), ("x11grab", ":1"))
+        captura = _abrir(FfmpegFalso([b"frame=1", b"out_time_us=0"]), plataforma="linux", sessao="x11", espera_inicio=5)
+        self.assertEqual(captura.motor, "x11grab")
+        with self.assertRaisesRegex(tela.ErroTela, "janela só"):
+            _abrir(FfmpegFalso(), plataforma="linux", sessao="x11", janela="Aula")
+
+    def test_wayland_vai_pelo_portal(self):
+        from unittest import mock
+        from vatty import tela_portal
+        with mock.patch.object(tela_portal, "CapturaPortal", side_effect=tela_portal.ErroPortal("cancelado")):
+            with self.assertRaisesRegex(tela.ErroTela, "cancelado"):
+                tela.abrir("g/tela.mp4", plataforma="linux", sessao="wayland")
+
+    def test_portal_caminho_codificador_e_comando(self):
+        from vatty import tela_portal
+        self.assertEqual(tela_portal.caminho_pedido(":1.42", "vattyab"),
+                         "/org/freedesktop/portal/desktop/request/1_42/vattyab")
+        self.assertEqual(tela_portal.escolher_codificador(lambda n: n == "openh264enc"), "openh264enc")
+        self.assertIsNone(tela_portal.escolher_codificador(lambda n: False))
+        c = tela_portal.comando_gst("gst-launch-1.0", 7, 55, "g/tela.mp4", "x264enc")
+        self.assertIn("-e", c)  # fim de fluxo no Ctrl+C: o mp4 fecha direito
+        self.assertIn("fd=7", c)
+        self.assertIn("path=55", c)
+        self.assertEqual(c[-1], "location=g/tela.mp4")
 
 
 if __name__ == "__main__":

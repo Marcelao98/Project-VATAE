@@ -31,7 +31,7 @@ Duas metades, sempre separadas:
 | Transcrever um vídeo do YouTube | `vatty "https://youtube.com/watch?v=..."` |
 | Transcrever TikTok ou outra plataforma | `vatty "https://www.tiktok.com/..." --texto whisper` |
 | Transcrever um arquivo (.mp4, .mp3, .opus, áudio de WhatsApp...) | `vatty arquivo.opus` |
-| Gravar uma reunião ou aula do PC (Windows) | `vatty gravar --mic --transcrever` |
+| Gravar uma reunião ou aula do PC (Windows ou Linux) | `vatty gravar --mic --transcrever` |
 | Gravar a tela junto, com os slides no horário da fala | `vatty gravar --mic --tela --visual aula --transcrever` |
 | Testar um programa e achar bugs | `vatty gravar --mic --tela --transcrever` e peça ao **Perito** |
 | Ler o que aparece na tela de um vídeo | `vatty video.mp4 --visual aula` (ou `app`, ou `auto`) |
@@ -53,52 +53,22 @@ Duas metades, sempre separadas:
 | Vários vídeos ou uma playlist | `vatty lote lista.txt` |
 | Usar tudo pelo navegador (gravar, YouTube, agentes) | `vatty ui` |
 
-## O jeito mais fácil (Windows)
-
-Clique duas vezes em **`abrir-vatty.bat`**, na pasta do projeto. Na primeira vez ele prepara tudo sozinho
-(leva uns minutos); depois, só abre o painel no navegador. Precisa só do Python 3.14 e do ffmpeg instalados.
-
 ## Instalação
 
-Requer **Python 3.14** e o **ffmpeg** no PATH. Para gravar a tela inteira com pouca
-CPU, o ffmpeg precisa ser o **6.1 ou mais novo** (o `winget` já instala um assim).
+Funciona no **Windows** e no **Linux** (testado para Fedora 43; Ubuntu também). O passo a passo completo, com a
+lista de tudo que a Vatty usa e o que muda em cada sistema, está em **[INSTALAR.md](INSTALAR.md)**. Resumo:
 
-```bash
-# ffmpeg (abra um terminal novo depois)
-winget install Gyan.FFmpeg        # Windows
-brew install ffmpeg               # macOS
-sudo apt install ffmpeg           # Linux
-
-# Deno (recomendado para o YouTube: libera todos os formatos)
-winget install DenoLand.Deno      # Windows
-
-# Tesseract (só para ler a tela: --visual e gravação com tela)
-# Windows: instalador do UB Mannheim (marque Portuguese) e ponha a pasta no PATH
-brew install tesseract tesseract-lang                     # macOS
-sudo apt install tesseract-ocr tesseract-ocr-por          # Linux
-
-# o projeto
-python -m venv .venv
-.venv\Scripts\activate            # Windows (Linux/macOS: source .venv/bin/activate)
-pip install -e .
-```
-
-Extras opcionais, instale só o que for usar:
-
-```bash
-pip install -e ".[gravacao]"    # gravar o som do PC e o microfone (Windows)
-pip install -e ".[falantes]"    # separar quem falou e perfis de voz
-pip install -e ".[ata]"         # ata em .docx e .pdf
-```
-
-Primeira vez? Rode `vatty ui`: a tela inicial diz o que está faltando instalar.
+- **Com o Claude Code:** abra-o na pasta do projeto e diga **"instala a Vatty"** (skill `instalar-vatty`).
+- **Na mão:** instale Python 3.14, Git, ffmpeg, Deno (ou Node) e Tesseract, clone o projeto e dê dois cliques
+  em `abrir-vatty.bat` (Windows) ou rode `./abrir-vatty.sh` (Linux). Na primeira vez ele prepara tudo sozinho.
+- Só a **gravação do PC** muda entre os sistemas; transcrição, YouTube, slides, agentes e painel são iguais.
 
 ## Primeiros passos
 
 ```bash
 vatty "https://www.youtube.com/watch?v=..."     # vira transcricoes/<titulo>/
 vatty gravacao.opus                              # qualquer formato que o ffmpeg abra
-vatty gravar --duracao 5                         # teste rápido da gravação (Windows)
+vatty gravar --duracao 5                         # teste rápido da gravação
 ```
 
 Tudo vai para uma **pasta do vídeo** em `transcricoes/<nome>/`. O principal é o
@@ -135,7 +105,7 @@ download quebrar, atualize: `pip install -U "yt-dlp[default,curl-cffi]"`. O `fon
 `.opus`, `.ogg`, `.mp3`, `.m4a`, `.wav`, `.mp4`... qualquer coisa que o ffmpeg
 abra. O arquivo não é alterado nem copiado.
 
-## Gravar o PC (Windows)
+## Gravar o PC (Windows e Linux)
 
 Grava o que sai nas caixas (reunião no Meet/Zoom/Teams, aula, live) e, com `--mic`,
 o seu microfone em outra faixa:
@@ -159,7 +129,8 @@ Cada faixa vira um `.wav` de 16 kHz (uns 115 MB por hora) em
   ficar quase muda, a Vatty avisa no fim.
 - **Os .wav:** depois de transcrever, a Vatty pergunta se apaga (o padrão é guardar).
   `--apagar-audio` ou `--manter-audio` pulam a pergunta.
-- **Dispositivo:** usa o alto-falante e o microfone padrão do Windows.
+- **Dispositivo:** usa o alto-falante e o microfone padrão do sistema. No Linux, o som do PC vem da fonte
+  "monitor" do PipeWire (o ffmpeg lê direto; nada a instalar além dele).
 - **Consentimento:** gravar uma conversa sem avisar os outros pode ser ilegal onde
   você mora. A Vatty lembra disso ao começar.
 - **Pontuação do microfone (experimental):** o canal `Eu:` às vezes sai em
@@ -178,7 +149,7 @@ Cada faixa vira um `.wav` de 16 kHz (uns 115 MB por hora) em
   da gravação em outro PR. (`initial_prompt` não resolve: com os parâmetros
   provados, o faster-whisper só o aplica na primeira janela.)
 
-## Gravar a tela junto (Windows)
+## Gravar a tela junto (Windows e Linux)
 
 ```bash
 vatty gravar --mic --tela --transcrever                        # testar um programa (perfil app)
@@ -202,6 +173,13 @@ quase não ocupa espaço. Largura até 1920 px, para o texto pequeno de programa
 continuar legível. Se o seu ffmpeg não tiver o `ddagrab` (mais velho que o 6.1)
 ou ele falhar (área de trabalho remota, por exemplo), a Vatty avisa e cai para o
 `gdigrab`. `--tela-fps N` muda a taxa.
+
+**No Linux.** Tela inteira só (ainda sem `--tela-janela`). Com **X11**, o ffmpeg grava pelo `x11grab`. Com
+**Wayland** (o padrão do Fedora e do Ubuntu novos), nenhum programa pode capturar a tela sozinho: a Vatty pede ao
+**portal do sistema**, que mostra a janela "Compartilhar a tela?", e o **GStreamer** grava. Na primeira vez você
+escolhe a tela e clica em compartilhar; a permissão fica lembrada em `~/.vatty/portal-tela.txt` (apague para
+escolher de novo). No Wayland o horário de início da tela é aproximado (o GStreamer não informa o primeiro
+quadro como o ffmpeg), então a sincronia pode errar alguns décimos de segundo a mais.
 
 **Privacidade.** A tela pode mostrar senha, notificação e conversa de outras
 pessoas. A Vatty avisa antes de começar; feche o que não deve aparecer. A imagem
@@ -553,7 +531,8 @@ export HF_HOME=/mnt/dados/huggingface
 
 Os testes automáticos usam dublês: sem rede, sem modelo, sem ffmpeg. O que foi
 rodado com mídia real está em [`docs/testes-reais.md`](docs/testes-reais.md).
-**Ainda não confirmados num PC real:** a gravação do áudio e da tela no Windows e
+**Ainda não confirmados num PC real:** a gravação do áudio e da tela no Windows e no Linux (no Linux, só a
+tela X11 foi gravada de verdade, numa tela virtual), e
 a sincronia entre eles, o perfil `app`, a separação de falantes com voz real, a
 ata numa reunião real, a interface usada no dia a dia e os agentes rodando de
 verdade.

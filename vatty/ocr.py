@@ -25,7 +25,7 @@ CAMINHOS_WINDOWS = (
 )
 
 COMO_INSTALAR = ("Instale o Tesseract (Windows: instalador do UB Mannheim, marcando o idioma Portuguese; "
-                 "Linux: sudo apt install tesseract-ocr tesseract-ocr-por; macOS: brew install tesseract tesseract-lang). "
+                 "Fedora: sudo dnf install tesseract tesseract-langpack-por; Ubuntu: sudo apt install tesseract-ocr tesseract-ocr-por; macOS: brew install tesseract tesseract-lang). "
                  "Se ele não estiver no PATH, defina a variável TESSERACT_CMD com o caminho do programa.")
 
 

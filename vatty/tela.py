@@ -26,6 +26,7 @@ A captura real (`CapturaTela`) recebe o ffmpeg por parâmetro (`abrir`,
 fica em `docs/testes-reais.md`.
 """
 
+import os
 import shutil
 import subprocess
 import sys
@@ -39,14 +40,15 @@ FPS_JANELA = 10          # gdigrab: copia a tela a cada quadro; mais que isso pe
 LARGURA_MAX = 1920       # texto de programa é pequeno: reduzir mais estraga o OCR
 ESPERA_INICIO_S = 10.0   # quanto esperar o primeiro quadro antes de usar o horário aproximado
 ESPERA_FIM_S = 15.0      # quanto esperar o ffmpeg fechar o arquivo depois do "q"
-MOTORES = ("ddagrab", "gdigrab")
+MOTORES = ("ddagrab", "gdigrab", "x11grab")   # x11grab: Linux com X11 (no Wayland, ver tela_portal.py)
 
 
 class ErroTela(Exception):
     """Falha ao começar a gravar a tela (mensagem para o usuário)."""
 
 
-def comando(exe: str, saida, *, motor: str = "ddagrab", janela: str | None = None, fps: int | None = None) -> list:
+def comando(exe: str, saida, *, motor: str = "ddagrab", janela: str | None = None, fps: int | None = None,
+            exibicao: str = ":0") -> list:
     """Linha de comando do ffmpeg. `janela` (título exato) só existe no gdigrab."""
     escala = f"scale='trunc(min({LARGURA_MAX},iw)/2)*2':-2"  # largura par (o yuv420p exige)
     if motor == "ddagrab":
@@ -54,10 +56,14 @@ def comando(exe: str, saida, *, motor: str = "ddagrab", janela: str | None = Non
         # dup_frames=0: sem mudança na tela, sem quadro novo
         entrada = ["-f", "lavfi", "-i", f"ddagrab=output_idx=0:framerate={fps}:dup_frames=0,hwdownload,format=bgra"]
         filtro = escala
+    elif motor == "x11grab":
+        fps = fps or FPS_JANELA
+        entrada = ["-f", "x11grab", "-framerate", str(fps), "-draw_mouse", "1", "-i", exibicao]
+        filtro = f"mpdecimate=max={fps * 2}," + escala
     else:
         fps = fps or FPS_JANELA
         entrada = ["-f", "gdigrab", "-framerate", str(fps), "-i", f"title={janela}" if janela else "desktop"]
-        filtro = "mpdecimate," + escala  # tira os quadros repetidos
+        filtro = f"mpdecimate=max={fps * 2}," + escala  # tira os repetidos; um a cada 2 s fica, para a duração sair certa
     return [
         exe, "-hide_banner", "-loglevel", "error", "-nostats", "-stats_period", "0.1",
         *entrada, "-an", "-vf", filtro, "-fps_mode", "vfr",
@@ -99,11 +105,13 @@ def deslocamento(inicios: dict) -> float:
     return inicios["tela"] - min(audios)
 
 
-def sincronizar(dados: dict, desloc: float) -> dict:
+def sincronizar(dados: dict, desloc: float, duracao: float | None = None) -> dict:
     """
     Leva os eventos do visual para a linha do tempo do áudio. O que fica antes
     do zero do áudio é cortado (o slide que já estava na tela começa em 0) e o
     que acaba antes dele sai. O cabeçalho registra o deslocamento usado.
+    Com `duracao` (a do áudio), a última tela vai até o fim da gravação: tela parada
+    no fim não gera quadro novo, e o vídeo "acaba" antes do áudio.
     """
     eventos = []
     for e in dados.get("eventos", []):
@@ -111,6 +119,8 @@ def sincronizar(dados: dict, desloc: float) -> dict:
         if fim <= 0:
             continue
         eventos.append({**e, "inicio": max(0.0, inicio), "fim": fim})
+    if duracao and eventos and eventos[-1]["fim"] < duracao:
+        eventos[-1] = {**eventos[-1], "fim": round(duracao, 1)}
     return {**dados, "sincronia": {"deslocamento_s": round(desloc, 3)}, "eventos": eventos}
 
 
@@ -124,9 +134,14 @@ class CapturaTela:
 
     def __init__(self, saida, *, janela: str | None = None, fps: int | None = None, abrir=subprocess.Popen,
                  achar=shutil.which, executar=subprocess.run, agora=time.time, plataforma=sys.platform,
-                 espera_inicio=ESPERA_INICIO_S):
-        if plataforma != "win32":
-            raise ErroTela("a gravação da tela só funciona no Windows por enquanto.")
+                 espera_inicio=ESPERA_INICIO_S, sessao=None, exibicao=None):
+        sessao = sessao if sessao is not None else os.environ.get("XDG_SESSION_TYPE", "")
+        linux_x11 = plataforma.startswith("linux") and sessao == "x11"
+        if plataforma != "win32" and not linux_x11:
+            raise ErroTela("a gravação da tela funciona no Windows e no Linux (X11 ou Wayland); este sistema ainda não.")
+        if linux_x11 and janela:
+            raise ErroTela("no Linux, gravar uma janela só ainda não funciona: grave a tela inteira (--tela).")
+        self._exibicao = exibicao or os.environ.get("DISPLAY", ":0")
         exe = achar("ffmpeg")
         if not exe:
             raise ErroTela("ffmpeg não encontrado no PATH (precisa dele para gravar a tela).")
@@ -137,7 +152,9 @@ class CapturaTela:
         # grupo próprio: o Ctrl+C que para a gravação não derruba o ffmpeg antes de fechar o arquivo
         self._abrir = lambda c: abrir(c, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                       creationflags=getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
-        if janela:
+        if linux_x11:
+            motores = ["x11grab"]
+        elif janela:
             motores = ["gdigrab"]  # o ddagrab não grava uma janela só
         elif tem_ddagrab(exe, executar):
             motores = ["ddagrab", "gdigrab"]
@@ -163,7 +180,8 @@ class CapturaTela:
         self.inicio_aproximado = False
         self._primeiro_quadro = threading.Event()
         aberto_em = self._agora()
-        self._proc = self._abrir(comando(exe, self.saida, motor=motor, janela=self.janela, fps=self.fps))
+        self._proc = self._abrir(comando(exe, self.saida, motor=motor, janela=self.janela, fps=self.fps,
+                                         exibicao=self._exibicao))
         # o progresso precisa ser lido até o fim: com o cano cheio, o ffmpeg trava
         self._leitor = threading.Thread(target=self._ler, daemon=True)
         self._leitor.start()
@@ -212,3 +230,20 @@ class CapturaTela:
                 self._proc.wait(timeout=5)
         self._leitor.join(timeout=5)
         return ate_o_fim
+
+
+def abrir(saida, *, janela: str | None = None, fps: int | None = None, plataforma=sys.platform, sessao=None):
+    """
+    Começa a gravar a tela pelo caminho de cada sistema: Windows (ddagrab/gdigrab), Linux com X11
+    (x11grab) ou Linux com Wayland (portal do sistema + GStreamer, `tela_portal`).
+    """
+    sessao = sessao if sessao is not None else os.environ.get("XDG_SESSION_TYPE", "")
+    if plataforma.startswith("linux") and sessao != "x11":
+        if janela:
+            raise ErroTela("no Linux, gravar uma janela só ainda não funciona: grave a tela inteira (--tela).")
+        from . import tela_portal
+        try:
+            return tela_portal.CapturaPortal(saida, fps=fps)
+        except tela_portal.ErroPortal as e:
+            raise ErroTela(str(e)) from e
+    return CapturaTela(saida, janela=janela, fps=fps, plataforma=plataforma, sessao=sessao)

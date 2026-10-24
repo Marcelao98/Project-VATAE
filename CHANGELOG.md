@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.18.0 — 2026-10-24
+
+A Vatty no Linux (Fedora) e um guia de instalação que qualquer um replica.
+
+- **Gravar no Linux**: o som do PC e o microfone vêm do PipeWire pelo próprio ffmpeg (nada a instalar além
+  dele). A tela: X11 pelo `x11grab`; Wayland (padrão do Fedora) pelo portal do sistema ("Compartilhar a tela?")
+  e o GStreamer, com a permissão lembrada. `--tela-janela` ainda só no Windows.
+- **`abrir-vatty.sh`**: o irmão do `.bat` (cria o ambiente, instala, atualiza o yt-dlp, avisa o que falta).
+- **Instalação em duas versões**: `INSTALAR.md` (humano, Windows e Fedora, tabela do que cada sistema usa) e a
+  skill `instalar-vatty` (diga "instala a Vatty" no Claude Code: ele confere, instala e testa; o `sudo` fica
+  com a pessoa).
+- Corrigido (vale para o Windows também): tela parada no fim fazia o vídeo "acabar" antes do áudio e a
+  última tela do `visual.json` ficava curta. O `mpdecimate` guarda um quadro a cada 2 s e a sincronia leva a
+  última tela até o fim do áudio.
+- Dicas de instalação na tela e nos erros com o comando de cada sistema (`winget`, `dnf`, `apt`).
+- 558 testes. **Verificado de verdade aqui**: a tela X11 gravada pelo `x11grab` real numa tela virtual (Xvfb).
+  **Não verificado**: o som pelo PipeWire e a tela pelo portal do Wayland (só no seu Fedora).
+
 ## 0.17.0 — 2026-10-17
 
 Painel "Começar" no `vatty ui`.

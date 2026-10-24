@@ -277,7 +277,7 @@ class TestGravacaoCli(unittest.TestCase):
             (gravacao, "abrir_entradas", lambda microfone=False: [_Tom("sistema")] + ([_Tom("microfone")] if microfone else [])),
             (gravacao, "gravar", gravar_sem_esperar),
             (cli, "_whisper", _whisper_falso),
-            (tela, "CapturaTela", _TelaFalsa),
+            (tela, "abrir", _TelaFalsa),
         ):
             p = mock.patch.object(objeto, nome, valor)
             p.start()
@@ -419,7 +419,7 @@ class TestGravacaoCli(unittest.TestCase):
         self.assertEqual(self.fonte_json()["inicios"]["tela"], 1000.0)
 
     def test_tela_fps_e_perfil_aula(self):
-        with mock.patch.object(tela, "CapturaTela", wraps=_TelaFalsa) as captura, \
+        with mock.patch.object(tela, "abrir", wraps=_TelaFalsa) as captura, \
                 mock.patch.object(cli, "_fazer_visual") as fazer:
             self.gravar("--tela", "--tela-fps", "15", "--visual", "aula", "--transcrever", "--manter-audio")
         self.assertEqual(captura.call_args.kwargs["fps"], 15)
@@ -432,7 +432,7 @@ class TestGravacaoCli(unittest.TestCase):
         self.assertEqual(sorted(p.name for p in pasta_audio.iterdir()), ["gravacao.json", "tela.mp4"])
 
     def test_tela_janela_grava_so_a_janela(self):
-        with mock.patch.object(tela, "CapturaTela", wraps=_TelaFalsa) as captura:
+        with mock.patch.object(tela, "abrir", wraps=_TelaFalsa) as captura:
             self.gravar("--tela-janela", "Aula - Zoom")
         self.assertEqual(captura.call_args.kwargs["janela"], "Aula - Zoom")
         (pasta_audio,) = self.pastas_de_audio()
@@ -451,7 +451,7 @@ class TestGravacaoCli(unittest.TestCase):
     def test_erro_ao_abrir_a_tela_nao_deixa_pasta(self):
         def falha(saida, janela=None, fps=None):
             raise tela.ErroTela("a gravação da tela só funciona no Windows por enquanto.")
-        with mock.patch.object(tela, "CapturaTela", falha):
+        with mock.patch.object(tela, "abrir", falha):
             codigo, _, err = self.gravar("--tela")
         self.assertEqual(codigo, 1)
         self.assertIn("tela", err)

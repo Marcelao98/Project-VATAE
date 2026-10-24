@@ -1,8 +1,10 @@
 """
 Gravação do áudio do PC (e do microfone) em arquivos .wav, uma faixa por fonte.
 
-Só Windows por enquanto: o som do sistema vem do loopback do WASAPI, via
-PyAudioWPatch (extra opcional: `pip install -e ".[gravacao]"`).
+Windows: o som do sistema vem do loopback do WASAPI, via PyAudioWPatch (extra
+opcional: `pip install -e ".[gravacao]"`). Linux: o ffmpeg lê do PipeWire (ou
+PulseAudio) a fonte "monitor" do alto-falante padrão e o microfone padrão, já em
+16 kHz mono; nada a instalar além do ffmpeg.
 
 Cada faixa vai para um .wav de 16 kHz mono (o que o Whisper usa) numa pasta
 `gravacoes/AAAA-MM-DD_HH-MM/`: `sistema.wav` e, com microfone, `microfone.wav`.
@@ -20,7 +22,10 @@ resto recebe as entradas por parâmetro, e os testes passam dublês.
 
 import json
 import queue
+import shutil
+import subprocess
 import sys
+import threading
 import time
 import wave
 from dataclasses import dataclass, field
@@ -311,10 +316,101 @@ def _microfone_padrao(pa, pyaudio):
         raise ErroGravacao(f"não achei o microfone padrão: {e}") from e
 
 
-def abrir_entradas(microfone: bool = False) -> list:
+# --- Captura real (Linux: PipeWire/PulseAudio pelo ffmpeg) ---------------------
+# Também sem teste automático da captura em si; os comandos e a escolha das fontes são puros.
+
+FONTE_SISTEMA_PADRAO = "@DEFAULT_MONITOR@"   # nome especial do PulseAudio/PipeWire: o "monitor" do alto-falante
+FONTE_MICROFONE_PADRAO = "@DEFAULT_SOURCE@"
+ESPERA_ABRIR_S = 0.6                          # tempo para o ffmpeg reclamar de uma fonte que não existe
+
+
+def comando_pulse(exe: str, fonte: str) -> list:
+    """ffmpeg lendo uma fonte do PulseAudio/PipeWire e escrevendo int16 mono 16 kHz no stdout."""
+    return [exe, "-hide_banner", "-loglevel", "error", "-nostdin", "-fragment_size", "3200",
+            "-f", "pulse", "-i", fonte, "-ac", "1", "-ar", str(TAXA), "-f", "s16le", "-"]
+
+
+def fontes_pulse(executar=subprocess.run) -> dict:
+    """
+    {'sistema': monitor do alto-falante padrão, 'microfone': microfone padrão}, pelo `pactl`.
+    Sem o pactl, usa os nomes especiais, que o PipeWire também entende.
+    """
+    def padrao(o_que: str) -> str | None:
+        try:
+            saida = executar(["pactl", f"get-default-{o_que}"], capture_output=True, text=True, timeout=5)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        nome = (saida.stdout or "").strip()
+        return nome if saida.returncode == 0 and nome else None
+
+    alto_falante, microfone = padrao("sink"), padrao("source")
+    return {"sistema": f"{alto_falante}.monitor" if alto_falante else FONTE_SISTEMA_PADRAO,
+            "microfone": microfone or FONTE_MICROFONE_PADRAO}
+
+
+class _EntradaFfmpeg:
+    """Uma fonte do PipeWire lida por um ffmpeg; uma thread esvazia o cano para ele nunca travar."""
+
+    def __init__(self, nome: str, fonte: str, exe: str, abrir=subprocess.Popen, dormir=time.sleep):
+        self.nome, self.taxa, self.canais, self.descricao = nome, TAXA, 1, fonte
+        self._fila = queue.Queue()
+        self._proc = abrir(comando_pulse(exe, fonte), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE)
+        threading.Thread(target=self._ler, daemon=True).start()
+        dormir(ESPERA_ABRIR_S)
+        if self._proc.poll() is not None:
+            erro = self._proc.stderr.read().decode("utf-8", errors="replace").strip()
+            raise ErroGravacao(f"o ffmpeg não abriu '{fonte}' ({nome}): {erro or 'fechou sem dizer por quê'}")
+
+    def _ler(self) -> None:
+        ler = getattr(self._proc.stdout, "read1", self._proc.stdout.read)
+        while True:
+            bloco = ler(4096)
+            if not bloco:
+                return
+            self._fila.put(bloco)
+
+    def pegar(self) -> bytes:
+        blocos = []
+        while True:
+            try:
+                blocos.append(self._fila.get_nowait())
+            except queue.Empty:
+                return b"".join(blocos)
+
+    def fechar(self) -> None:
+        if self._proc.poll() is None:
+            self._proc.terminate()
+            try:
+                self._proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._proc.kill()
+
+
+def _abrir_linux(microfone: bool, achar=shutil.which, executar=subprocess.run, abrir=subprocess.Popen,
+                 dormir=time.sleep) -> list:
+    exe = achar("ffmpeg")
+    if not exe:
+        raise ErroGravacao("falta o ffmpeg (Fedora: sudo dnf install ffmpeg, com o RPM Fusion; Ubuntu: sudo apt install ffmpeg).")
+    fontes = fontes_pulse(executar)
+    entradas = []
+    try:
+        entradas.append(_EntradaFfmpeg("sistema", fontes["sistema"], exe, abrir, dormir))
+        if microfone:
+            entradas.append(_EntradaFfmpeg("microfone", fontes["microfone"], exe, abrir, dormir))
+    except BaseException:
+        for e in entradas:
+            e.fechar()
+        raise
+    return entradas
+
+
+def abrir_entradas(microfone: bool = False, plataforma=sys.platform) -> list:
     """Abre o som do PC (e o microfone, se pedido). Levanta ErroGravacao com o que fazer."""
-    if sys.platform != "win32":
-        raise ErroGravacao("a gravação só funciona no Windows por enquanto.")
+    if plataforma.startswith("linux"):
+        return _abrir_linux(microfone)
+    if plataforma != "win32":
+        raise ErroGravacao("a gravação funciona no Windows e no Linux; este sistema ainda não.")
     try:
         import pyaudiowpatch  # noqa: F401
     except ImportError:

@@ -6,6 +6,35 @@ com o mundo real. Uma entrada por teste, a mais nova em cima.
 
 ---
 
+## A fazer: Vatty no Fedora (0.18.0, ainda não rodado)
+
+Feito com dublês; só a tela X11 foi gravada de verdade (numa tela virtual, na nuvem). Anotar cada passo.
+
+**0. Instalar.** Seguir o `INSTALAR.md` (ou dizer "instala a Vatty" no Claude Code). Anotar o que faltou e se
+algum nome de pacote do `dnf` estava errado. `echo $XDG_SESSION_TYPE` (esperado: `wayland`).
+
+**1. Som.** `./abrir-vatty.sh` uma vez (prepara o ambiente) e depois, com algo tocando e falando no microfone:
+`.venv/bin/python -m vatty.cli gravar --mic --duracao 10`.
+- Os dois `.wav` têm som? Apareceu "faixa quase muda"? Anotar as linhas `sistema:` e `microfone:` (as fontes
+  que o `pactl` escolheu).
+- Fone Bluetooth ou saída HDMI como padrão: grava o que está tocando nele?
+
+**2. Tela no Wayland.** `.venv/bin/python -m vatty.cli gravar --tela --duracao 15`.
+- Apareceu a janela "Compartilhar a tela?" do sistema? Depois de compartilhar, o `tela.mp4` abre e mostra a tela?
+- Rodar de novo: desta vez **não** pode perguntar (permissão lembrada em `~/.vatty/portal-tela.txt`).
+- Cancelar na janela do sistema: a CLI diz "o compartilhamento da tela foi cancelado" e não deixa pasta vazia?
+- Ctrl+C no meio: o `tela.mp4` fica legível? Sobra `gst-launch-1.0` rodando (`pgrep gst-launch`)? Não pode.
+- Anotar o codificador usado (x264enc ou openh264enc: aparece no erro se faltar) e a CPU durante a gravação.
+
+**3. Tudo junto pelo painel.** `./abrir-vatty.sh`, aba Começar, "Gravar tela e áudio", 2 minutos, Parar.
+- Chega no Pronto com `visual.json`? Os horários batem com a fala (o início da tela no Wayland é aproximado:
+  anotar a diferença em 3 trocas de tela)?
+
+**4. YouTube e agentes.** Um link pelo painel (com o Node ou o Deno instalado) e um pedido de agente com o
+Claude Code logado. Mesmas perguntas do Windows.
+
+---
+
 ## A fazer: gravação da tela, perfil app e Perito (0.16.0, ainda não rodado)
 
 Feito e testado só com dublês. Precisa de Windows, ffmpeg e Tesseract no PATH e o extra `[gravacao]`.

@@ -223,3 +223,38 @@ class TestPreprocessamentoPorFaixa(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLinux(unittest.TestCase):
+    def test_comando_do_ffmpeg_le_do_pulse_em_16k_mono(self):
+        c = gravacao.comando_pulse("ffmpeg", "alsa_output.pci.analog-stereo.monitor")
+        self.assertEqual(c[c.index("-f") + 1], "pulse")
+        self.assertEqual(c[c.index("-i") + 1], "alsa_output.pci.analog-stereo.monitor")
+        self.assertEqual((c[c.index("-ac") + 1], c[c.index("-ar") + 1], c[-2], c[-1]), ("1", "16000", "s16le", "-"))
+
+    def test_fontes_pelo_pactl_ou_os_nomes_especiais(self):
+        from types import SimpleNamespace
+
+        def pactl(argv, **kw):
+            return SimpleNamespace(returncode=0, stdout={"get-default-sink": "fone\n", "get-default-source": "mic\n"}[argv[1]])
+        self.assertEqual(gravacao.fontes_pulse(pactl), {"sistema": "fone.monitor", "microfone": "mic"})
+
+        def sem_pactl(argv, **kw):
+            raise FileNotFoundError("pactl")
+        self.assertEqual(gravacao.fontes_pulse(sem_pactl), {"sistema": "@DEFAULT_MONITOR@", "microfone": "@DEFAULT_SOURCE@"})
+
+    def test_ffmpeg_que_nao_abre_a_fonte_vira_erro_claro(self):
+        import io
+
+        class Fechou:
+            stdout, stderr = io.BytesIO(b""), io.BytesIO(b"No such entity")
+
+            def poll(self):
+                return 1
+
+        with self.assertRaisesRegex(gravacao.ErroGravacao, "No such entity"):
+            gravacao._EntradaFfmpeg("sistema", "x.monitor", "ffmpeg", abrir=lambda c, **kw: Fechou(), dormir=lambda s: None)
+
+    def test_sistema_sem_suporte(self):
+        with self.assertRaisesRegex(gravacao.ErroGravacao, "Windows e no Linux"):
+            gravacao.abrir_entradas(plataforma="darwin")

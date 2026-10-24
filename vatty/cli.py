@@ -424,7 +424,7 @@ def _fazer_visual(args, destino: Path, dados_fonte: dict, video=None, deslocamen
                                parametros={"intervalo_s": app.INTERVALO_S, "limiar_mudanca": app.LIMIAR,
                                            "estaveis": app.ESTAVEIS, "max_eventos": app.MAX_EVENTOS})
             print()
-            return _gravar_visual(destino, dados, deslocamento, "evento(s)")
+            return _gravar_visual(destino, dados, deslocamento, "evento(s)", dados_fonte.get("duracao_s"))
         print("Procurando as trocas de tela...")
         deteccao = aula.detectar(video, progresso=_progresso_visual("tela"))
         print()
@@ -443,12 +443,12 @@ def _fazer_visual(args, destino: Path, dados_fonte: dict, video=None, deslocamen
                             parametros={"intervalo_s": visual.INTERVALO_S, "limiar_mudanca": visual.LIMIAR_MUDANCA,
                                         "max_slides": visual.MAX_SLIDES, "escolha": args.visual})
         print()
-    _gravar_visual(destino, dados, deslocamento, "slide(s)")
+    _gravar_visual(destino, dados, deslocamento, "slide(s)", dados_fonte.get("duracao_s"))
 
 
-def _gravar_visual(destino: Path, dados: dict, deslocamento, nome: str) -> None:
+def _gravar_visual(destino: Path, dados: dict, deslocamento, nome: str, duracao=None) -> None:
     if deslocamento is not None:  # gravação: os horários da tela vão para a linha do tempo do áudio
-        dados = tela.sincronizar(dados, deslocamento)
+        dados = tela.sincronizar(dados, deslocamento, duracao)
     caminho = pasta.gravar_visual(destino, dados)
     print(f"Visual: {len(dados['eventos'])} {nome} em {caminho.parent} (visual.json e frames/).")
 
@@ -472,7 +472,7 @@ def _visual(args, destino: Path, dados_fonte: dict, video=None, deslocamento=Non
 def _argumentos_gravar(argv):
     p = argparse.ArgumentParser(
         prog="vatty gravar",
-        description="Grava o áudio do PC (Windows) até Ctrl+C. Com --mic grava também o microfone, "
+        description="Grava o áudio do PC (Windows ou Linux) até Ctrl+C. Com --mic grava também o microfone, "
                     "em outra faixa. Cada faixa vira um .wav em gravacoes/AAAA-MM-DD_HH-MM/.")
     p.add_argument("--mic", action="store_true", help="grava também o microfone (faixa separada: 'eu')")
     p.add_argument("--transcrever", action="store_true", help="ao parar, já transcreve e cria a pasta do vídeo")
@@ -528,7 +528,7 @@ def _main_gravar(argv) -> int:
             # A tela abre antes do áudio: o ffmpeg demora um pouco para gravar o primeiro quadro,
             # e o áudio aberto antes ficaria acumulando essa espera.
             destino.mkdir(parents=True)
-            captura = tela.CapturaTela(destino / tela.ARQUIVO, janela=args.tela_janela, fps=args.tela_fps)
+            captura = tela.abrir(destino / tela.ARQUIVO, janela=args.tela_janela, fps=args.tela_fps)
             print(f"  tela: {args.tela_janela or 'tela inteira'} ({captura.motor}, até {captura.fps} quadros por segundo)")
             if captura.aviso:
                 print(f"Aviso: {captura.aviso}")

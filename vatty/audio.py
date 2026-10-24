@@ -20,7 +20,8 @@ COMO_INSTALAR_FFMPEG = (
     "ffmpeg não encontrado no PATH. Instale e abra um terminal novo:\n"
     "  Windows: winget install Gyan.FFmpeg\n"
     "  macOS:   brew install ffmpeg\n"
-    "  Linux:   sudo apt install ffmpeg"
+    "  Fedora:  sudo dnf install ffmpeg (ative antes o RPM Fusion: o ffmpeg-free do Fedora vem cortado)\n"
+    "  Ubuntu:  sudo apt install ffmpeg"
 )
 
 

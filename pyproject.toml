@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vatty"
-version = "0.17.0"
+version = "0.18.0"
 description = "Vatty (Video Audio To Almost Everything): transforma vídeos, áudios e gravações em texto (legenda ou faster-whisper) e deixa agentes do Claude Code fazerem o resto. Filha do ouvido da Natty."
 readme = "README.md"
 license = "MIT"
@@ -19,8 +19,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Gravação do áudio do PC (só Windows): `pip install -e ".[gravacao]"`.
-gravacao = ["pyaudiowpatch; sys_platform == 'win32'"]
+# Gravação do PC: `pip install -e ".[gravacao]"`. Windows: PyAudioWPatch (som do PC e microfone).
+# Linux: o áudio vem do PipeWire pelo ffmpeg (nada a instalar aqui); o jeepney fala com o portal do
+# Wayland para gravar a tela.
+gravacao = ["pyaudiowpatch; sys_platform == 'win32'", "jeepney; sys_platform == 'linux'"]
 # Separação de falantes (--falantes e vatty perfil): `pip install -e ".[falantes]"`.
 falantes = ["sherpa-onnx"]
 # Ata de reunião em .docx e .pdf (`vatty ata`): `pip install -e ".[ata]"`.

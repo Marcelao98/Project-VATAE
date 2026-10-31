@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vatty"
-version = "0.19.1"
+version = "0.20.0"
 description = "Vatty (Video Audio To Almost Everything): transforma vídeos, áudios e gravações em texto (legenda ou faster-whisper) e deixa agentes do Claude Code fazerem o resto. Filha do ouvido da Natty."
 readme = "README.md"
 license = "MIT"
@@ -27,6 +27,8 @@ gravacao = ["pyaudiowpatch; sys_platform == 'win32'", "jeepney; sys_platform == 
 falantes = ["sherpa-onnx"]
 # Ata de reunião em .docx e .pdf (`vatty ata`): `pip install -e ".[ata]"`.
 ata = ["python-docx", "reportlab"]
+# Apresentação em PowerPoint (`vatty apresentacao`, agente Apresentador): `pip install -e ".[apresentacao]"`.
+apresentacao = ["python-pptx"]
 
 [project.scripts]
 vatty = "vatty.cli:main"

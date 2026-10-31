@@ -22,6 +22,7 @@ AGENTES = {
     "cartas": ("Cartas", "flashcards", "cartoes"),
     "tradutor": ("Tradutor", "legenda traduzida", None),
     "perito": ("Perito", "achar bugs", "pericia"),
+    "apresentador": ("Apresentador", "apresentação de slides", None),
 }
 
 

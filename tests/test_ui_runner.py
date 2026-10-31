@@ -138,6 +138,18 @@ class TestExecutar(unittest.TestCase):
             self.assertEqual(t.estado, f.PRONTO)
             self.assertTrue(any(l.startswith("Aviso: sem slides") for l in t.log))
 
+    def test_depois_dos_agentes_o_roteiro_do_apresentador_vira_deck(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            (Path(pasta) / "apresentacao-x.md").write_text("# Título\n\n## Um\n- item\n", encoding="utf-8")
+            agentes = ProcFalso(b'{"type":"result","is_error":false,"result":"ok"}\n')
+            agentes.stdin = io.BytesIO()
+            fila = f.Fila(lambda t, c: runner.executar(t, c, "transcricoes", popen=lambda *a, **k: agentes,
+                                                        achar_claude=lambda: "claude"))
+            t = fila.adicionar(pasta, {"agentes": ["apresentador"]}, f.AGENTES)
+            fila.processar_um(f.AGENTES)
+            self.assertEqual(t.estado, f.PRONTO)
+            self.assertTrue((Path(pasta) / "apresentacao-x.html").is_file())
+
     def test_cancelar_derruba_o_processo(self):
         t, proc = rodar(b"Transcrevendo...\nmais uma\n", cancelar_antes=True)
         self.assertEqual(t.estado, f.CANCELADO)

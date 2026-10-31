@@ -249,7 +249,7 @@ export HF_HOME=/mnt/dados/huggingface
 ## Testes
 
 ```bash
-python -m unittest discover -s backend/tests
+cd backend && python -m unittest discover -s tests
 ```
 
 Rodam com dublês: sem rede, sem modelo, sem ffmpeg e sem yt-dlp.

@@ -265,7 +265,7 @@ compara dois vídeos). Não criar agente novo sem necessidade real.
 ## Comandos
 
 ```bash
-python -m unittest discover -s backend/tests
+cd backend && python -m unittest discover -s tests
 vatty arquivo.opus
 vatty gravar --mic --transcrever
 vatty "url" --visual auto

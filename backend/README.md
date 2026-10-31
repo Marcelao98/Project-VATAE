@@ -5,5 +5,5 @@ completa está no [README da raiz](../README.md).
 
 ```bash
 pip install -e backend            # da raiz do repositório
-python -m unittest discover -s backend/tests
+cd backend && python -m unittest discover -s tests
 ```

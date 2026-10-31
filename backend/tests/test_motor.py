@@ -249,7 +249,7 @@ class TestCombinarTermos(unittest.TestCase):
 
 
 class TestListasDeTermos(unittest.TestCase):
-    PASTA = Path(__file__).resolve().parent.parent / "termos"
+    PASTA = Path(__file__).resolve().parents[2] / "termos"  # termos/ fica na raiz do repositório
     # Sem o tokenizador do Whisper aqui, o teste usa uma estimativa pessimista
     # (2 caracteres por token; em português costuma dar 2,5 a 3,5): a lista
     # sozinha tem que caber nos ~223 tokens que o Whisper usa.

@@ -100,6 +100,20 @@ passando (PowerPoint em tela cheia ou vídeo de aula). Os slides saem com o hor�
 - Tire o Tesseract do PATH só nesse terminal e rode `vatty gravar --tela --transcrever --duracao 20`:
   sai com código 1, o texto fica salvo e a gravação fica inteira? Volte o Tesseract e rode o comando que
   ela sugeriu (`vatty gravacoes/<pasta> --visual app`).
+## 2026-10-12 — Download do TikTok pela `Sessao` (só download, sem Whisper)
+
+yt-dlp 2026.08.19, curl_cffi 0.16.3. 5 URLs públicas (2 curtas `vm.tiktok.com`, 2 completas,
+1 de 23 s que era para ser "longa"; nenhum slideshow achado), 2 rodadas cada, 3 s entre downloads:
+`inspecionar` + `baixar_audio` em todas, `baixar_video` nas 2 primeiras.
+
+- `inspecionar`: 10 de 10. Plataforma `TikTok` em todas; o link curto resolve sozinho.
+- Downloads: **13 de 14** (áudio 9/10, vídeo 4/4), de 1 a 10 s cada.
+- **Instável:** `vm.tiktok.com/ZSrjTVXjN/` baixou o áudio na rodada 1 e falhou na 2 com
+  `DownloadError: [TikTok] 7487637498932382994: Unexpected response from webpage request`.
+  Na mesma rodada, o vídeo baixou logo depois. Parece bloqueio intermitente do TikTok; uma nova
+  tentativa provavelmente resolveria.
+- Um vídeo sem descrição fica com a própria URL como título (`https://vm.tiktok.com/ZSrjTmyYW/`).
+- Áudio sai em `.mp3` ou `.m4a`, conforme o vídeo.
 
 ---
 

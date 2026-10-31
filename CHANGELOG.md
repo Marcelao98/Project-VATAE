@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.19.1 — 2026-10-31
+
+- **Gerar slides pela biblioteca**: no leitor de um vídeo com prints (`visual.json`), o botão "Gerar slides"
+  (ou "Refazer slides") monta o `slides.html` (e o PDF, com o reportlab) e abre numa aba. Antes só dava para
+  pedir antes de gravar ou pela CLI (`vatty slides`).
+- 580 testes. **Verificado de verdade**: a gravação de 31/10 (Fedora 44) gerou os slides pela API do painel.
+
 ## 0.19.0 — 2026-10-31
 
 - **Juntar a gravação num arquivo só, para enviar**: `vatty juntar gravacoes/<data>` mistura o som do PC e o

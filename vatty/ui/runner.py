@@ -159,12 +159,16 @@ def executar(trabalho, ctx, saida, popen=subprocess.Popen, achar_claude=None) ->
     return pasta
 
 
+def formatos_slides() -> tuple:
+    """HTML sempre; PDF também, se o reportlab estiver instalado."""
+    return ("html", "pdf") if importlib.util.find_spec("reportlab") else ("html",)
+
+
 def _fazer_slides(pasta, ctx) -> None:
-    """Slides com os prints (HTML; PDF também, se o reportlab estiver instalado). Falha vira aviso."""
+    """Slides com os prints. Falha vira aviso."""
     from .. import slides
-    formatos = ("html", "pdf") if importlib.util.find_spec("reportlab") else ("html",)
     try:
-        for arquivo in slides.gerar(pasta, formatos):
+        for arquivo in slides.gerar(pasta, formatos_slides()):
             ctx.log(f"Slides prontos: {arquivo}")
     except slides.ErroSlides as e:
         ctx.log(f"Aviso: sem slides: {e}")

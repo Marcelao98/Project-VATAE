@@ -231,12 +231,27 @@ function desenharLeitor() {
     el("div", {}, el("h2", {}, v.fonte.titulo || v.slug),
       el("small", { class: "dica" }, [v.fonte.canal, v.cabecalho.origem, v.cabecalho.duracao_s ? relogio(v.cabecalho.duracao_s) : null].filter(Boolean).join(", "))),
     el("div", { class: "exportar" }, ...FORMATOS.map((f) => el("a", { class: "btn-mini", href: comToken("exportar/" + encodeURIComponent(v.slug) + "/" + f) }, "." + f)),
-      ...v.gerados.map((g) => el("a", { class: "btn-mini", href: comToken("arquivo/" + encodeURIComponent(v.slug) + "/" + encodeURIComponent(g)) }, g))));
+      ...v.gerados.map((g) => el("a", { class: "btn-mini", href: comToken("arquivo/" + encodeURIComponent(v.slug) + "/" + encodeURIComponent(g)) }, g)),
+      ...(v.tem_visual ? [el("button", { class: "btn-mini", onclick: (e) => gerarSlides(v.slug, e.currentTarget) },
+        v.gerados.includes("slides.html") ? "Refazer slides" : "Gerar slides")] : [])));
   const duvidosos = v.paragrafos.filter((p) => p.duvidoso).length;
   const filtro = el("label", { class: "filtro" }, el("input", { type: "checkbox", id: "so-duvidosos", onchange: () => desenharParagrafos() }),
     " Só os " + duvidosos + " trechos para revisar");
   $("leitor").replaceChildren(topo, ferramentas(v), duvidosos ? filtro : el("span"), el("div", { class: "paragrafos", id: "paragrafos" }));
   desenharParagrafos();
+}
+async function gerarSlides(slug, botao) {  // um slide por tela, com o print e o que foi dito
+  botao.disabled = true;
+  botao.textContent = "Montando...";
+  try {
+    await post("video/" + encodeURIComponent(slug) + "/slides");
+    window.open(comToken("arquivo/" + encodeURIComponent(slug) + "/slides.html"), "_blank", "noopener");
+    await abrirVideo(slug);
+  } catch (e) {
+    aviso(e.message, true);
+    botao.disabled = false;
+    botao.textContent = "Gerar slides";
+  }
 }
 function desenharParagrafos() {
   const v = estado.video, so = $("so-duvidosos") && $("so-duvidosos").checked;

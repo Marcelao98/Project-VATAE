@@ -217,6 +217,21 @@ class TestRevisaoNaApi(Base):
         self.assertEqual(len(json.loads(self.chamar("/api/prompts")[1])), 6)
 
 
+class TestSlidesNaApi(Base):
+    _video = TestRevisaoNaApi._video
+
+    def test_gera_slides_so_com_visual(self):
+        self._video()
+        self.assertFalse(json.loads(self.chamar("/api/video/aula")[1])["tem_visual"])
+        self.assertEqual(self.chamar("/api/video/aula/slides", {})[0], 400)   # sem visual.json: erro legível
+        (self.raiz / "aula" / "visual.json").write_text("{}")
+        with mock.patch("vatty.slides.gerar", return_value=[self.raiz / "aula" / "slides.html"]) as gerar:
+            codigo, corpo = self.chamar("/api/video/aula/slides", {})
+        self.assertEqual((codigo, json.loads(corpo)), (200, {"gerados": ["slides.html"]}))
+        self.assertEqual(gerar.call_args[0][0], (self.raiz / "aula").resolve())
+        self.assertEqual(self.chamar("/api/video/nada/slides", {})[0], 404)
+
+
 class TestTerminal(unittest.TestCase):
     def test_so_subcomandos_permitidos(self):
         with tempfile.TemporaryDirectory() as d:

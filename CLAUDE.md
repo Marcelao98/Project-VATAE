@@ -9,6 +9,7 @@ tem Discord. Até a versão 0.9.0 o projeto se chamava Natty-ATA.
 
 ## Onde ler o quê
 
+- **Onde o projeto está e o que vem depois: `docs/estado-atual.md` (ler primeiro).**
 - Persona e voz: `AGENTS.md`. Fluxograma: `docs/fluxo.md`.
 - Detalhe por módulo, legenda, visual e agentes: `docs/arquitetura.md` (ler só quando mexer nessa parte).
 - Testes feitos no PC real: `docs/testes-reais.md`.

@@ -68,6 +68,7 @@ duas metades compartilham:
 | `_consultas/<pergunta>/trechos.md`, `resposta.md` | código, Consulta | `vatty perguntar` escolhe os trechos; o agente responde só com eles |
 | `_comparacoes/comparacao-<a>-<b>.md` | Comparador | só o agente, lendo duas pastas |
 | `pericia-<assunto>.md` | Perito | laudo de uma gravação de teste de programa (de preferência com `--tela`): seções `## Resumo/Bugs/Lentidão e espera/Atrito/Comportamento observado/Para reproduzir/Dúvidas`; bug como `[mm:ss] o que \| evidência \| gravidade \| certeza` |
+| `apresentacao-<tema>.md`, `.html` | Apresentador + código | `.md`: `# Título`, `subtitulo:`, um `## ` por slide com `tipo:` (`lista/passos/destaque/imagem/citacao/fim`), `- item`, `print:`, `recorte:`, `horario:`, `notas:`; `vatty apresentacao <pasta>` (ou o painel, depois dos agentes) monta o deck `.html`, num arquivo só |
 | `slides.html`, `slides.pdf` | Slides (código) | `vatty slides <pasta>` (ou o painel): um slide por tela do `visual.json`, com o print (embutido no HTML) e a fala do `transcricao.json` daquele intervalo; precisa do visual (`--visual aula/app` ou gravação com tela) |
 | `pedidos.json` | Painel (código) | só quando o painel pediu agentes: lista de `{agente, objetivo, pedido_em, estado}` (`pendente`/`feito`); ver "Pedidos do painel" |
 | `ata-<assunto>.docx`, `.pdf` | Ata (código) | `vatty ata <pasta>`: cabeçalho (data, duração, participantes) vindo de `fonte.json`/`falantes.json`, mais o `.md` do agente, com `Pessoa N` trocada pelos nomes dados |
@@ -188,6 +189,7 @@ vatty buscar "termo"
 vatty corrigir transcricoes/aula --glossario glossario.txt
 vatty legenda transcricoes/aula --formato srt vtt
 vatty juntar gravacoes/2026-10-31_13-43
+vatty apresentacao transcricoes/aula
 vatty slides transcricoes/aula --formato html pdf
 vatty ata transcricoes/reuniao --nomes "Pessoa 1=Ana" --formato docx pdf
 ```

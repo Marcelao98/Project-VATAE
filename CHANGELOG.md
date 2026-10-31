@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.20.0 — 2026-10-31
+
+- **Apresentação de slides**: agente novo, o **Apresentador**, escreve o roteiro (`apresentacao-<tema>.md`: a
+  história, um slide por ideia, os prints certos com recorte) e `vatty apresentacao <pasta>` monta um deck bonito
+  em `.html`, no visual da Vatty, num arquivo só (funciona offline e imprime em PDF, um slide por página). Tipos:
+  lista, passos, destaque, imagem, citação e fim; horário vira link no YouTube; N mostra as notas. No painel, o
+  Apresentador está na lista de agentes e o deck sai sozinho quando eles terminam.
+- 589 testes. **Verificado de verdade**: o pitch gravado em 31/10 virou um deck de 10 slides, conferido no Chrome.
+
 ## 0.19.1 — 2026-10-31
 
 - **Gerar slides pela biblioteca**: no leitor de um vídeo com prints (`visual.json`), o botão "Gerar slides"

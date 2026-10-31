@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.19.0 — 2026-10-31
+
+Licença nova e o `main` como fonte única.
+
+- **Licença: MIT → PolyForm Noncommercial 1.0.0.** Uso pessoal, estudo, pesquisa e instituições sem fins
+  lucrativos continuam livres; uso comercial precisa de licença do autor. As versões até a 0.18.0 seguem MIT
+  para quem já as tinha. Resumo no README; o texto que vale é o `LICENSE`.
+- Todos os branches juntados no `main` (`linux`, `perfil-app`, `secretario`, `vatty-evolucao`).
+- `docs/estado-atual.md`: onde o projeto está, o plano de engenharia e as instruções para o Claude Code.
+- 559 testes.
+
 ## 0.18.0 — 2026-10-24
 
 A Vatty no Linux (Fedora) e um guia de instalação que qualquer um replica.

@@ -543,4 +543,13 @@ python -m unittest discover -s tests
 
 ## Licença
 
-MIT. Ver [LICENSE](LICENSE).
+[PolyForm Noncommercial 1.0.0](LICENSE). Em resumo (o texto que vale é o do `LICENSE`):
+
+- **Pode, sem pedir:** usar, estudar, modificar e compartilhar para uso pessoal, estudo, pesquisa, hobby, e
+  em escola, ONG, órgão público e instituição de pesquisa.
+- **Não pode sem autorização:** uso comercial. Isso inclui usar numa empresa, vender, embutir num produto
+  ou oferecer a Vatty como serviço pago.
+- **Licença comercial:** fale com o autor ([Marcelao98](https://github.com/Marcelao98)).
+
+Até a versão 0.18.0 o projeto era MIT: quem já tinha uma cópia dessas versões continua com os direitos da
+MIT para elas. Da 0.19.0 em diante vale a PolyForm Noncommercial.

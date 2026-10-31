@@ -81,6 +81,15 @@ class TestGravador(unittest.TestCase):
         self.assertEqual(self.fila.adicionados, [("gravacoes/2026-10-17_10-00", {"agentes": ["secretario"], "visual": "aula"})])
         self.assertFalse(parar_com.exists())
 
+    def test_so_gravar_guarda_a_pasta_e_nao_poe_na_fila(self):
+        self.grav.iniciar({"microfone": True, "opcoes": {"so_gravar": True}})
+        self.grav.parar()
+        self.proc.escrever("Gravado: 0:10 em gravacoes/2026-10-28_10-00\n", fechar=True)
+        self.grav._thread.join(5)
+        r = self.grav.resumo()
+        self.assertEqual((r["estado"], r["pasta"], r["trabalho"]), (g.PRONTO, "gravacoes/2026-10-28_10-00", None))
+        self.assertEqual(self.fila.adicionados, [])
+
     def test_erro_da_cli_aparece_e_nada_vai_para_a_fila(self):
         self.proc.codigo = 1
         self.grav.iniciar({})

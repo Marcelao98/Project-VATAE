@@ -170,6 +170,11 @@ class TestLinux(unittest.TestCase):
                          "/org/freedesktop/portal/desktop/request/1_42/vattyab")
         self.assertEqual(tela_portal.escolher_codificador(lambda n: n == "openh264enc"), "openh264enc")
         self.assertIsNone(tela_portal.escolher_codificador(lambda n: False))
+        from unittest import mock
+        # noopenh264: o elemento existe, mas codificar falha -> não serve
+        falha = lambda cmd, **k: type("R", (), {"returncode": 1})()
+        with mock.patch("shutil.which", return_value="gst-launch-1.0"):
+            self.assertFalse(tela_portal._codificador_funciona("openh264enc", executar=falha))
         c = tela_portal.comando_gst("gst-launch-1.0", 7, 55, "g/tela.mp4", "x264enc")
         self.assertIn("-e", c)  # fim de fluxo no Ctrl+C: o mp4 fecha direito
         self.assertIn("fd=7", c)

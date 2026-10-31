@@ -40,9 +40,9 @@ def caminho_pedido(nome_unico: str, token: str) -> str:
     return f"/org/freedesktop/portal/desktop/request/{remetente}/{token}"
 
 
-def escolher_codificador(tem_elemento) -> str | None:
-    """O primeiro codificador H.264 que o GStreamer tem (`tem_elemento(nome) -> bool`)."""
-    return next((c for c in CODIFICADORES if tem_elemento(c)), None)
+def escolher_codificador(funciona) -> str | None:
+    """O primeiro codificador H.264 que funciona no GStreamer (`funciona(nome) -> bool`)."""
+    return next((c for c in CODIFICADORES if funciona(c)), None)
 
 
 def comando_gst(exe: str, fd: int, no: int, saida, codificador: str, fps: int = FPS) -> list:
@@ -56,12 +56,14 @@ def comando_gst(exe: str, fd: int, no: int, saida, codificador: str, fps: int = 
             "filesink", f"location={saida}"]
 
 
-def _tem_elemento(nome: str, executar=subprocess.run) -> bool:
-    exe = shutil.which("gst-inspect-1.0")
+def _codificador_funciona(nome: str, executar=subprocess.run) -> bool:
+    """Codifica um quadro de teste: só existir não basta (o `noopenh264` do Fedora tem o elemento e falha)."""
+    exe = shutil.which("gst-launch-1.0")
     if not exe:
         return False
     try:
-        return executar([exe, "--exists", nome], capture_output=True, timeout=10).returncode == 0
+        cmd = [exe, "-q", "videotestsrc", "num-buffers=1", "!", nome, "!", "fakesink"]
+        return executar(cmd, capture_output=True, timeout=10).returncode == 0
     except (OSError, subprocess.SubprocessError):
         return False
 
@@ -136,10 +138,11 @@ class CapturaPortal:
         exe = shutil.which("gst-launch-1.0")
         if not exe:
             raise ErroPortal("falta o GStreamer (Fedora: sudo dnf install gstreamer1-plugins-good pipewire-gstreamer).")
-        codificador = escolher_codificador(_tem_elemento)
+        codificador = escolher_codificador(_codificador_funciona)
         if not codificador:
-            raise ErroPortal("o GStreamer não tem codificador H.264 (Fedora: sudo dnf install gstreamer1-plugin-openh264, "
-                             "ou o gstreamer1-plugins-ugly do RPM Fusion).")
+            raise ErroPortal("o GStreamer não tem codificador H.264 que funcione (Fedora: sudo dnf install "
+                             "gstreamer1-plugin-openh264 e sudo dnf swap noopenh264 openh264 "
+                             "--enablerepo=fedora-cisco-openh264, ou o gstreamer1-plugins-ugly do RPM Fusion).")
         self._portal = portal or _Portal()
         token = TOKEN.read_text(encoding="utf-8").strip() if TOKEN.is_file() else None
         fd, no, novo_token = self._portal.abrir(token)

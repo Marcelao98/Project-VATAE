@@ -69,6 +69,8 @@ def montar_argv(entrada: str, opcoes: dict, saida, python: str = sys.executable)
             "--texto", opcoes.get("texto") if opcoes.get("texto") in OPCOES_TEXTO else "whisper",
             "--visual", opcoes.get("visual") if opcoes.get("visual") in OPCOES_VISUAL else "nenhum",
             "--preprocessar", opcoes.get("preprocessar") if opcoes.get("preprocessar") in OPCOES_PRE else "nao"]
+    if opcoes.get("manter_tela"):  # o vídeo gravado fica em gravacoes/<data>/tela.mp4
+        argv.append("--manter-tela")
     falantes = str(opcoes.get("falantes", "nao")).lower()
     if falantes in ("auto", "perfis") or (falantes.isdigit() and int(falantes) >= 1):
         argv += ["--falantes", falantes]

@@ -100,11 +100,15 @@
         <section class="bloco remendo" data-bloco="depois" aria-labelledby="t-depois">
           <h3 id="t-depois">Depois que eu ouvir</h3>
           <div class="escolhas" role="radiogroup" aria-labelledby="t-depois">
+            <label class="escolha" id="l-so-gravar"><input type="radio" name="depois" value="gravar">
+              <span><b>Só gravar</b><small>Guarda o áudio (e a tela) na pasta, sem transcrever agora.</small></span></label>
             <label class="escolha"><input type="radio" name="depois" value="guardar" checked>
               <span><b>Só transcrever e guardar</b><small>O texto fica na pasta do vídeo, no seu PC. Nada vai para a internet.</small></span></label>
             <label class="escolha"><input type="radio" name="depois" value="agentes">
               <span><b>Transcrever e chamar os agentes</b><small id="p-agentes-dica">Usa o Claude Code deste PC, com a sua conta. Só o texto vai para a IA.</small></span></label>
           </div>
+          <label class="escolha extra" data-detalhe="tela"><input type="checkbox" id="p-manter-tela" checked>
+            <span><b>Guardar o vídeo da tela</b><small>O tela.mp4 fica em gravacoes/, ao lado do áudio. Desmarque para guardar só os prints.</small></span></label>
           <label class="escolha extra" id="l-slides"><input type="checkbox" id="p-slides">
             <span><b>Montar slides com os prints</b><small id="p-slides-dica">Cada tela no momento em que apareceu, com o que foi dito. Sai um slides.html (e PDF).</small></span></label>
           <fieldset class="agentes" id="p-agentes" disabled><legend class="so-leitor">Agentes</legend></fieldset>

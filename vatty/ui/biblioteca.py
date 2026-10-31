@@ -115,6 +115,7 @@ def ler(raiz, slug: str) -> dict:
         "falantes": _json(pasta / "falantes.json"),
         "nomes": _nomes(pasta),
         "gerados": gerados(pasta),
+        "tem_visual": (pasta / "visual.json").is_file(),  # dá para montar os slides com os prints
     }
 
 

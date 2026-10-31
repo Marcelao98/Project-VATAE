@@ -228,6 +228,14 @@ class Handler(BaseHTTPRequestHandler):
         if metodo == "POST" and p[0] == "video" and len(p) == 3 and p[2] == "corrigir":
             c = self._corpo_json()
             return self._json(revisao.corrigir(s.raiz, p[1], c.get("errado"), c.get("certo"), bool(c.get("guardar"))))
+        if metodo == "POST" and p[0] == "video" and len(p) == 3 and p[2] == "slides":
+            from .. import slides
+            pasta = biblioteca.pasta_de(s.raiz, p[1])
+            try:
+                feitos = slides.gerar(pasta, runner.formatos_slides())
+            except slides.ErroSlides as e:
+                raise ValueError(str(e))
+            return self._json({"gerados": [f.name for f in feitos]})
         if metodo == "POST" and p[0] == "video" and len(p) == 3 and p[2] == "nomes":
             nomes = self._corpo_json().get("nomes")
             if not isinstance(nomes, dict):

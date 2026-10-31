@@ -9,6 +9,9 @@ from pathlib import Path
 from . import texto
 
 TAMANHO_MAX_SLUG = 60
+# Versão do formato da pasta (fonte.json, transcricao.json, visual.json). Sobe quando
+# um campo muda de sentido ou sai; campo novo e opcional não muda a versão.
+VERSAO_CONTRATO = 1
 
 
 def slug(nome: str, sufixo: str | None = None) -> str:
@@ -26,6 +29,7 @@ def _transcricao_json(resultado) -> str:
     linhas, e com indentação normal cada segmento ocupava cinco.
     """
     cabecalho = {
+        "versao": VERSAO_CONTRATO,
         "origem": resultado.origem,
         "modelo": resultado.modelo,
         "idioma": resultado.idioma,
@@ -56,7 +60,7 @@ def gravar(pasta: Path, fonte: dict, resultado) -> Path:
     def escrever_json(nome, dados):
         (pasta / nome).write_text(json.dumps(dados, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    escrever_json("fonte.json", fonte)
+    escrever_json("fonte.json", {"versao": VERSAO_CONTRATO, **fonte})
     (pasta / "transcricao.json").write_text(_transcricao_json(resultado), encoding="utf-8")
     destino = pasta / "transcricao.txt"
     if _duas_faixas(fonte, resultado.segmentos):
@@ -88,7 +92,7 @@ def gravar_visual(pasta: Path, dados: dict) -> Path:
     """
     pasta = Path(pasta)
     pasta.mkdir(parents=True, exist_ok=True)
-    cabecalho = {k: v for k, v in dados.items() if k != "eventos"}
+    cabecalho = {"versao": VERSAO_CONTRATO, **{k: v for k, v in dados.items() if k != "eventos"}}
     linhas = [f"  {json.dumps(k, ensure_ascii=False)}: {json.dumps(v, ensure_ascii=False)}," for k, v in cabecalho.items()]
     eventos = [f"    {json.dumps(e, ensure_ascii=False)}" for e in dados.get("eventos", [])]
     linhas.append('  "eventos": [')

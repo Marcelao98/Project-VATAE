@@ -6,9 +6,9 @@ build-backend = "setuptools.build_meta"
 name = "vatty"
 version = "0.11.0"
 description = "Vatty (Video Audio To Almost Everything): transforma vídeos, áudios e gravações em texto (legenda ou faster-whisper) e deixa agentes do Claude Code fazerem o resto. Filha do ouvido da Natty."
-readme = "README.md"
+readme = "README.md"  # backend/README.md: aponta para o README da raiz
 license = "MIT"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 # numpy já vem com o faster-whisper; listado porque o código importa direto.
 dependencies = [
     "faster-whisper>=1.2.1",
@@ -28,3 +28,14 @@ ata = "vatty.cli:main"
 
 [tool.setuptools]
 packages = ["vatty"]
+
+[project.urls]
+Repositorio = "https://github.com/Marcelao98/Project-VATAE"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# Só o essencial: erro de verdade (pyflakes) e import fora de ordem.
+select = ["E9", "F", "I"]

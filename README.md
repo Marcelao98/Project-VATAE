@@ -55,7 +55,7 @@ sudo apt install tesseract-ocr tesseract-ocr-por          # Linux
 # projeto
 python -m venv .venv
 .venv\Scripts\activate            # Windows (Linux/macOS: source .venv/bin/activate)
-pip install -e .
+pip install -e backend
 ```
 
 ## Uso
@@ -111,7 +111,7 @@ Grava o que sai nas caixas (reunião no Meet/Zoom/Teams, aula, live) e,
 com `--mic`, o seu microfone em outra faixa:
 
 ```bash
-pip install -e ".[gravacao]"          # uma vez: a biblioteca de captura (só Windows)
+pip install -e "backend[gravacao]"          # uma vez: a biblioteca de captura (só Windows)
 
 vatty gravar --duracao 5                # teste rápido: grava 5 s, deixe algo tocando
 vatty gravar                            # grava o som do PC até Ctrl+C
@@ -249,7 +249,7 @@ export HF_HOME=/mnt/dados/huggingface
 ## Testes
 
 ```bash
-python -m unittest discover -s tests
+python -m unittest discover -s backend/tests
 ```
 
 Rodam com dublês: sem rede, sem modelo, sem ffmpeg e sem yt-dlp.

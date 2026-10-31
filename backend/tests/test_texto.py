@@ -1,7 +1,7 @@
 import unittest
 
-from vatty.motor import Segmento
 from vatty import texto
+from vatty.motor import Segmento
 from vatty.texto import DURACAO_MAX_PARAGRAFO_S, PAUSA_PARAGRAFO_S, formatar, juntar_em_paragrafos
 
 

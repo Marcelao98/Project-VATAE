@@ -105,13 +105,22 @@ class TestPasta(unittest.TestCase):
             destino = pasta.gravar_visual(Path(tmp) / "v", dados)
             lido = json.loads(destino.read_text(encoding="utf-8"))
             linhas = destino.read_text(encoding="utf-8").splitlines()
-        self.assertEqual(lido, dados)
+        self.assertEqual(lido, {"versao": pasta.VERSAO_CONTRATO, **dados})
         self.assertEqual(sum(1 for l in linhas if '"tipo": "slide"' in l), 2)  # um por linha, texto com \\n escapado
 
     def test_gravar_visual_sem_eventos_continua_json_valido(self):
         with tempfile.TemporaryDirectory() as tmp:
             destino = pasta.gravar_visual(Path(tmp), {"perfil": "aula", "eventos": []})
             self.assertEqual(json.loads(destino.read_text(encoding="utf-8"))["eventos"], [])
+
+    def test_versao_do_contrato_nos_tres_json(self):
+        resultado = Resultado(fonte="f", duracao_s=0.0, modelo=None, idioma="pt")
+        with tempfile.TemporaryDirectory() as tmp:
+            pasta.gravar(Path(tmp), {"tipo": "arquivo"}, resultado)
+            pasta.gravar_visual(Path(tmp), {"perfil": "aula", "eventos": []})
+            for nome in ("fonte.json", "transcricao.json", "visual.json"):
+                dados = json.loads((Path(tmp) / nome).read_text(encoding="utf-8"))
+                self.assertEqual(dados["versao"], pasta.VERSAO_CONTRATO, nome)
 
     def test_gravar_sem_segmentos_continua_json_valido(self):
         resultado = Resultado(fonte="f", duracao_s=0.0, modelo=None, idioma="pt")

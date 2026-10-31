@@ -38,7 +38,7 @@ em cima de algo que ninguém viu funcionar.
 
 **Andamento no Fedora (31/10):** itens 0 (instalar), 1 (som; microfone precisou baixar para 40%) e 3 (painel
 com tela) rodados, anotados em `docs/testes-reais.md`. Novos: `vatty verificar [--instalar]` e `vatty juntar` (um `video.mp4` para enviar).
-Também: botão "Gerar slides" na biblioteca.
+Também: botão "Gerar slides" na biblioteca e o agente Apresentador (`vatty apresentacao`).
 Falta: item 2 inteiro pela CLI (cancelar, Ctrl+C, segunda vez sem perguntar), medir a sincronia, item 4
 (YouTube e agentes) e saber por que o `tela.mp4` foi apagado com "Guardar o vídeo da tela".
 

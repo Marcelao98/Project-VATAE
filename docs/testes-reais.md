@@ -6,6 +6,23 @@ com o mundo real. Uma entrada por teste, a mais nova em cima.
 
 ---
 
+## 2026-10-31 — Vatty no Fedora 44, itens 1 e 3: som e painel com tela
+
+- **Som (item 1):** `pactl` escolheu `alsa_output.pci-0000_04_00.6.analog-stereo.monitor` e
+  `alsa_input.pci-0000_04_00.6.analog-stereo` (microfone interno). Sistema: sem nada tocando, "faixa quase
+  muda" (correto); com o `espeak-ng` falando, gravou limpo (pico 0,86) e o Whisper transcreveu.
+  **Microfone estourado** com o volume de entrada em 100% (+30 dB no hardware): 38% das amostras no teto, também
+  com o ffmpeg puro (não é a Vatty). Em 40% (`pactl set-source-volume @DEFAULT_SOURCE@ 40%`) ficou limpo, só um
+  estalo no primeiro segundo, e as duas faixas saíram certas na linha do tempo. Bluetooth/HDMI: não testado.
+- **Painel com tela (item 3):** "Gravar tela e áudio", 2:39, Parar. Chegou no Pronto com `visual.json` (7 prints,
+  perfil app) e o Perito escreveu o laudo. Avisos: "o ffmpeg não disse quando gravou o primeiro quadro" (o início
+  da tela no Wayland é aproximado; a tela começou 2,3 s antes do áudio) e sistema quase mudo (nada tocando).
+  **A conferir:** o `tela.mp4` foi apagado depois dos slides, mas "Guardar o vídeo da tela" vem marcado; falta
+  saber se foi desmarcado ou se a opção não chegou à CLI. Diferença de horário em 3 trocas de tela: não medida.
+- **Novo por causa disto:** `vatty juntar` e a opção no painel (as faixas ficavam só separadas).
+
+---
+
 ## 2026-10-31 — Vatty no Fedora 44, item 0: instalação
 
 PC do Marcelo, **Fedora 44** (o guia diz 43), sessão `wayland`, Python 3.14.3. Projeto já clonado, `.venv` já criado.

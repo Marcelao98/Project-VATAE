@@ -1,15 +1,46 @@
 # Changelog
 
-## 0.19.0 — 2026-10-31
-
-Licença nova e o `main` como fonte única.
+## 0.21.0 — 2026-10-31
 
 - **Licença: MIT → PolyForm Noncommercial 1.0.0.** Uso pessoal, estudo, pesquisa e instituições sem fins
-  lucrativos continuam livres; uso comercial precisa de licença do autor. As versões até a 0.18.0 seguem MIT
+  lucrativos continuam livres; uso comercial precisa de licença do autor. As versões até a 0.20.0 seguem MIT
   para quem já as tinha. Resumo no README; o texto que vale é o `LICENSE`.
-- Todos os branches juntados no `main` (`linux`, `perfil-app`, `secretario`, `vatty-evolucao`).
-- `docs/estado-atual.md`: onde o projeto está, o plano de engenharia e as instruções para o Claude Code.
-- 559 testes.
+
+## 0.20.0 — 2026-10-31
+
+- **Apresentação de slides**: agente novo, o **Apresentador**, escreve o roteiro (`apresentacao-<tema>.md`: a
+  história, um slide por ideia, os prints certos com recorte) e `vatty apresentacao <pasta>` monta um
+  **PowerPoint (.pptx)** no visual da Vatty, com as notas de quem apresenta (extra `apresentacao`: python-pptx).
+  `--formato html` gera também um deck que abre no navegador, offline. Tipos: lista, passos, destaque, imagem,
+  citação e fim; o horário vira link no YouTube. No painel, o
+  Apresentador está na lista de agentes e o deck sai sozinho quando eles terminam.
+- 589 testes. **Verificado de verdade**: o pitch gravado em 31/10 virou um deck de 10 slides, conferido no Chrome.
+
+## 0.19.1 — 2026-10-31
+
+- **Gerar slides pela biblioteca**: no leitor de um vídeo com prints (`visual.json`), o botão "Gerar slides"
+  (ou "Refazer slides") monta o `slides.html` (e o PDF, com o reportlab) e abre numa aba. Antes só dava para
+  pedir antes de gravar ou pela CLI (`vatty slides`).
+- 580 testes. **Verificado de verdade**: a gravação de 31/10 (Fedora 44) gerou os slides pela API do painel.
+
+## 0.19.0 — 2026-10-31
+
+- **Juntar a gravação num arquivo só, para enviar**: `vatty juntar gravacoes/<data>` mistura o som do PC e o
+  microfone (sem baixar o volume, com limitador) embaixo da tela, cada faixa deslocada pelo horário real em que
+  começou, e grava `video.mp4` ao lado (a imagem é copiada, sem recodificar; ~5 s para 2:40). Sem tela sai
+  `audio.m4a`. No painel, a opção "Juntar num arquivo só, para enviar" faz isso logo depois de parar, antes da
+  transcrição (que pode apagar o `tela.mp4`); se falhar, só avisa.
+- 579 testes. **Verificado de verdade**: uma gravação de 2:39 com tela no Fedora 44 (Wayland) virou um
+  `video.mp4` com o som 2,3 s atrasado, como a tela pedia.
+
+## 0.18.1 — 2026-10-31
+
+- **`vatty verificar`**: confere cada peça neste computador (as do painel e mais as do sistema: Tesseract em
+  português, `pactl`, GStreamer, portal e um codificador de vídeo que grava de verdade no Wayland) e diz o
+  comando para o que falta. Com `--instalar`, instala sozinho o que é do Python e mostra o comando do sistema
+  (`sudo dnf`/`apt`, `winget`) num lugar só, rodando só depois da confirmação. O `abrir-vatty.sh` usa a versão
+  `--curto` no lugar da lista que tinha.
+- 570 testes. **Verificado de verdade**: `vatty verificar` no Fedora 44 (Wayland), tudo ok.
 
 ## 0.18.0 — 2026-10-24
 

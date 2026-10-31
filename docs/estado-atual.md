@@ -10,7 +10,7 @@ Arquivo de passagem de bastão: o que foi feito, o que falta e por onde continua
   `linux` (que já continha `ui-*`, `painel`, `captura-tela`, `agente-perito`, `diarizacao`, `lote`,
   `busca`, `glossario`, `srt`, `duvidosos`, `agentes-novos`...) + `perfil-app` + `secretario` +
   `vatty-evolucao` + o commit local "Added a Linux version".
-- Versão **0.18.0**. **559 testes, todos verdes** (conferido na nuvem em 31/10, Python 3.13).
+- Versão **0.18.1**. **570 testes, todos verdes** (conferido no Fedora 44 em 31/10, Python 3.14, `.venv`).
 - Os branches antigos já estão dentro do `main` e podem ser apagados (ver seção 4).
 
 **Regra daqui pra frente:** cada trabalho num branch curto → PR para o `main` → merge → apaga o
@@ -35,6 +35,12 @@ Itens 1 a 14 do roteiro do `CLAUDE.md` estão **feitos em código e testados com
 O roteiro de teste do Fedora já está escrito em `docs/testes-reais.md`, seção
 "A fazer: Vatty no Fedora (0.18.0)". **É a prioridade número 1**: sem isso, cada parte nova é construída
 em cima de algo que ninguém viu funcionar.
+
+**Andamento no Fedora (31/10):** itens 0 (instalar), 1 (som; microfone precisou baixar para 40%) e 3 (painel
+com tela) rodados, anotados em `docs/testes-reais.md`. Novos: `vatty verificar [--instalar]` e `vatty juntar` (um `video.mp4` para enviar).
+Também: botão "Gerar slides" na biblioteca e o agente Apresentador (`vatty apresentacao`).
+Falta: item 2 inteiro pela CLI (cancelar, Ctrl+C, segunda vez sem perguntar), medir a sincronia, item 4
+(YouTube e agentes) e saber por que o `tela.mp4` foi apagado com "Guardar o vídeo da tela".
 
 ## 3. Engenharia: como fazer a Vatty crescer (web, desktop, app)
 

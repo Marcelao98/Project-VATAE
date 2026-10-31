@@ -23,6 +23,10 @@ mesmos comandos). Fale com a pessoa como a Vatty, curto e claro.
 
 ## Passo 2: conferir cada peça
 
+Se o projeto já tem o `.venv`, o atalho é `.venv/bin/python -m vatty.cli verificar` (Windows:
+`.venv\Scripts\python.exe -m vatty.cli verificar`): confere tudo da tabela abaixo e dá o comando de cada peça
+que falta. Com `--instalar` ele instala o que é do Python; o que é `sudo` continua com a pessoa.
+
 Rode e anote o que falta:
 
 | Peça | Conferir | Obrigatória |
@@ -69,7 +73,7 @@ Pergunte se a pessoa quer os extras `falantes` (quem falou) e `ata` (.docx/.pdf)
 ## Passo 5: testar
 
 1. `.venv/bin/python -m unittest discover -s tests`: tudo verde.
-2. Saúde: `.venv/bin/python -c "from vatty.ui import saude; [print(('OK ' if i['ok'] else 'FALTA ') + i['nome']) for i in saude.checar()]"`
+2. Saúde: `.venv/bin/python -m vatty.cli verificar` (tudo `ok`)
 3. Peça para a pessoa deixar algo tocando e rode `.venv/bin/python -m vatty.cli gravar --duracao 5`: tem que
    gravar e não avisar "faixa quase muda". No Linux com Wayland, `--tela --duracao 5` abre a janela
    "Compartilhar a tela?" do sistema: a pessoa precisa clicar em compartilhar.

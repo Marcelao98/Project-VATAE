@@ -123,6 +123,7 @@ def executar(trabalho, ctx, saida, popen=subprocess.Popen, achar_claude=None) ->
     if "glossario" not in opcoes and padrao.is_file():
         opcoes["glossario"] = str(padrao)
     argv = montar_argv(trabalho.entrada, opcoes, saida)
+    ctx.log("vatty " + " ".join(argv[3:]))  # o pedido exato fica no log: é por ele que se descobre o que a CLI recebeu
     proc = popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                  env=ambiente())
     pasta, ultima_erro = None, ""
@@ -158,12 +159,16 @@ def executar(trabalho, ctx, saida, popen=subprocess.Popen, achar_claude=None) ->
     return pasta
 
 
+def formatos_slides() -> tuple:
+    """HTML sempre; PDF também, se o reportlab estiver instalado."""
+    return ("html", "pdf") if importlib.util.find_spec("reportlab") else ("html",)
+
+
 def _fazer_slides(pasta, ctx) -> None:
-    """Slides com os prints (HTML; PDF também, se o reportlab estiver instalado). Falha vira aviso."""
+    """Slides com os prints. Falha vira aviso."""
     from .. import slides
-    formatos = ("html", "pdf") if importlib.util.find_spec("reportlab") else ("html",)
     try:
-        for arquivo in slides.gerar(pasta, formatos):
+        for arquivo in slides.gerar(pasta, formatos_slides()):
             ctx.log(f"Slides prontos: {arquivo}")
     except slides.ErroSlides as e:
         ctx.log(f"Aviso: sem slides: {e}")
@@ -181,4 +186,20 @@ def executar_agentes(trabalho, ctx, popen, achar_claude) -> str:
     if claude.rodar(pasta, ctx, exe, popen=popen) != 0:
         raise RuntimeError("Os agentes não terminaram (veja o log). O texto está salvo e o pedido continua anotado: "
                            "no Claude Code, diga \"faz os pedidos da Vatty\".")
+    _montar_apresentacoes(pasta, ctx)
     return pasta
+
+
+def _montar_apresentacoes(pasta, ctx) -> None:
+    """O Apresentador escreve o roteiro (.md); o deck (.html) sai daqui. Sem roteiro, nada a fazer."""
+    from .. import apresentacao
+    if not any(Path(pasta).glob("apresentacao-*.md")):
+        return
+    formatos = ("pptx",) if importlib.util.find_spec("pptx") else ("html",)
+    if formatos == ("html",):
+        ctx.log('Aviso: sem o python-pptx a apresentação sai em .html (pip install -e ".[apresentacao]" para .pptx).')
+    try:
+        for arquivo in apresentacao.montar(pasta, formatos=formatos):
+            ctx.log(f"Apresentação pronta: {arquivo}")
+    except (apresentacao.ErroApresentacao, OSError) as e:
+        ctx.log(f"Aviso: sem apresentação: {e}")

@@ -110,6 +110,9 @@ python -m unittest discover -s tests # conferir se está tudo certo
 
 ## Conferir
 
+- `vatty verificar` diz o que está ok e o que falta, com o comando de cada um. `vatty verificar --instalar`
+  instala: o que é do Python ele faz sozinho; o do sistema (`sudo dnf`, `apt`, `winget`) ele mostra e roda depois
+  que você confirmar.
 - `vatty ui`, aba Começar: se faltar algo essencial, a tela avisa o que e como instalar.
 - `vatty gravar --duracao 5` grava 5 s do som do PC (deixe algo tocando). Com `--tela`, grava a tela junto. No
   Fedora, na primeira vez aparece a janela "Compartilhar a tela?" do sistema; depois ela não pergunta mais

@@ -48,6 +48,8 @@ def checar(procurar=shutil.which, tem_modulo=_tem_modulo, modelo_em_cache=_model
          "Instale o Claude Code e entre com a sua conta."),
         ("ata", "Ata em .docx e .pdf", tem_modulo("docx") and tem_modulo("reportlab"), OPCIONAL,
          "Só para `vatty ata`. Rode: pip install python-docx reportlab"),
+        ("pptx", "Apresentação em PowerPoint (.pptx)", tem_modulo("pptx"), OPCIONAL,
+         "Só para o Apresentador. Rode: pip install python-pptx"),
     ]
     return [{"id": i, "nome": n, "ok": ok, "nivel": nv, "ajuda": a} for i, n, ok, nv, a in itens]
 

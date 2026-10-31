@@ -21,7 +21,7 @@ EXPORTAVEIS = {
 }
 PADROES_GERADOS = ("pontos-chave-*.md", "didatico-*.md", "ata-*.md", "ata-*.docx", "ata-*.pdf",
                    "cartoes-*.md", "cartoes-*.csv", "pericia-*.md", "legenda.srt", "legenda.vtt", "legenda.*.srt",
-                   "slides.html", "slides.pdf")
+                   "slides.html", "slides.pdf", "apresentacao-*.pptx", "apresentacao-*.html", "apresentacao-*.md")
 
 
 class NaoAchei(Exception):
@@ -115,6 +115,7 @@ def ler(raiz, slug: str) -> dict:
         "falantes": _json(pasta / "falantes.json"),
         "nomes": _nomes(pasta),
         "gerados": gerados(pasta),
+        "tem_visual": (pasta / "visual.json").is_file(),  # dá para montar os slides com os prints
     }
 
 

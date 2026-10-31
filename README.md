@@ -551,5 +551,5 @@ python -m unittest discover -s tests
   ou oferecer a Vatty como serviço pago.
 - **Licença comercial:** fale com o autor ([Marcelao98](https://github.com/Marcelao98)).
 
-Até a versão 0.18.0 o projeto era MIT: quem já tinha uma cópia dessas versões continua com os direitos da
-MIT para elas. Da 0.19.0 em diante vale a PolyForm Noncommercial.
+Até a versão 0.20.0 o projeto era MIT: quem já tinha uma cópia dessas versões continua com os direitos da
+MIT para elas. Da 0.21.0 em diante vale a PolyForm Noncommercial.

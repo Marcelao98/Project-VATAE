@@ -6,6 +6,45 @@ com o mundo real. Uma entrada por teste, a mais nova em cima.
 
 ---
 
+## 2026-10-31 — Vatty no Fedora 44, itens 1 e 3: som e painel com tela
+
+- **Som (item 1):** `pactl` escolheu `alsa_output.pci-0000_04_00.6.analog-stereo.monitor` e
+  `alsa_input.pci-0000_04_00.6.analog-stereo` (microfone interno). Sistema: sem nada tocando, "faixa quase
+  muda" (correto); com o `espeak-ng` falando, gravou limpo (pico 0,86) e o Whisper transcreveu.
+  **Microfone estourado** com o volume de entrada em 100% (+30 dB no hardware): 38% das amostras no teto, também
+  com o ffmpeg puro (não é a Vatty). Em 40% (`pactl set-source-volume @DEFAULT_SOURCE@ 40%`) ficou limpo, só um
+  estalo no primeiro segundo, e as duas faixas saíram certas na linha do tempo. Bluetooth/HDMI: não testado.
+- **Painel com tela (item 3):** "Gravar tela e áudio", 2:39, Parar. Chegou no Pronto com `visual.json` (7 prints,
+  perfil app) e o Perito escreveu o laudo. Avisos: "o ffmpeg não disse quando gravou o primeiro quadro" (o início
+  da tela no Wayland é aproximado; a tela começou 2,3 s antes do áudio) e sistema quase mudo (nada tocando).
+  **A conferir:** o `tela.mp4` foi apagado depois dos slides, mas "Guardar o vídeo da tela" vem marcado; falta
+  saber se foi desmarcado ou se a opção não chegou à CLI. Diferença de horário em 3 trocas de tela: não medida.
+- **Novo por causa disto:** `vatty juntar` e a opção no painel (as faixas ficavam só separadas).
+
+---
+
+## 2026-10-31 — Vatty no Fedora 44, item 0: instalação
+
+PC do Marcelo, **Fedora 44** (o guia diz 43), sessão `wayland`, Python 3.14.3. Projeto já clonado, `.venv` já criado.
+
+- **Já estava tudo do sistema:** RPM Fusion e `fedora-cisco-openh264` ativos; `ffmpeg` 8.1.3 do RPM Fusion
+  (com `libx264` e `libopenh264`); Tesseract 5.5.3 com `por`; GStreamer good/bad-free, `pipewire-gstreamer`,
+  `gstreamer1-plugin-openh264` e o `openh264` de verdade (não o `noopenh264`); `pactl` (PipeWire, mensagens em
+  português); Claude Code em `~/.local/bin`.
+- **Node:** `rpm -q nodejs` diz que não está, mas o `node` 22 existe, vindo do `nodejs22-bin`. Para a Vatty
+  basta o comando `node`, então o guia está certo para quem instala do zero.
+- **Codificador da tela:** não tem `x264enc` (vem do `gstreamer1-plugins-ugly`, do RPM Fusion); o `openh264enc`
+  grava um quadro de verdade (`gst-launch-1.0 videotestsrc num-buffers=1 ! videoconvert ! openh264enc ! h264parse
+  ! fakesink` dá 0), então a tela vai usar o openh264.
+- **Python:** faltavam só os extras `falantes` e `ata`. `pip install -e ".[gravacao,falantes,ata]"` falhou na
+  primeira vez ("Failed to build installable wheels ... sherpa-onnx"); `pip install sherpa-onnx` sozinho baixou
+  a roda pronta (2.0.1, `sherpa_onnx_core` `py3-none-manylinux2014`) e a repetição passou. Causa não confirmada
+  (provável troca momentânea de versão no PyPI). Se voltar, instalar o `sherpa-onnx` antes dos outros extras.
+- **Novo por causa disto:** `vatty verificar` (e `--instalar`) faz esta conferência inteira sozinho. No PC:
+  tudo `ok`.
+
+---
+
 ## A fazer: Vatty no Fedora (0.18.0, ainda não rodado)
 
 Feito com dublês; só a tela X11 foi gravada de verdade (numa tela virtual, na nuvem). Anotar cada passo.

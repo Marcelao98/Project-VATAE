@@ -67,3 +67,4 @@ uma vez só (nunca repete depois).
 | Consulta | responde perguntas sobre o acervo | `.claude/agents/consulta.md` |
 | Comparador | compara dois vídeos | `.claude/agents/comparador.md` |
 | Perito | laudo de teste de programa: bugs, lentidão, atrito, comportamento | `.claude/agents/perito.md` |
+| Apresentador | roteiro de uma apresentação de slides (o código monta o deck) | `.claude/agents/apresentador.md` |

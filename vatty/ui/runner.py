@@ -123,6 +123,7 @@ def executar(trabalho, ctx, saida, popen=subprocess.Popen, achar_claude=None) ->
     if "glossario" not in opcoes and padrao.is_file():
         opcoes["glossario"] = str(padrao)
     argv = montar_argv(trabalho.entrada, opcoes, saida)
+    ctx.log("vatty " + " ".join(argv[3:]))  # o pedido exato fica no log: é por ele que se descobre o que a CLI recebeu
     proc = popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                  env=ambiente())
     pasta, ultima_erro = None, ""

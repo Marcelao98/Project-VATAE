@@ -70,6 +70,8 @@ class Gravador:
             tela = bool(pedido.get("tela") or pedido.get("janela"))
             opcoes = dict(pedido.get("opcoes") or {})
             opcoes["visual"] = pedido.get("perfil") if tela and pedido.get("perfil") in PERFIS else ("app" if tela else "nenhum")
+            if tela:  # o vídeo da tela só é apagado se a pessoa desmarcou de propósito (manter_tela: false)
+                opcoes["manter_tela"] = opcoes.get("manter_tela") is not False
             self._parar_com = self._tmp / f"vatty-parar-{id(self)}-{threading.get_ident()}"
             self._parar_com.unlink(missing_ok=True)
             argv = montar_argv(pedido, self.gravacoes, self._parar_com)

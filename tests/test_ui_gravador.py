@@ -79,7 +79,8 @@ class TestGravador(unittest.TestCase):
         r = self.grav.resumo()
         self.assertEqual((r["estado"], r["trabalho"], r["decorrido"]), (g.PRONTO, "t1", 65))
         self.assertIn("Aviso: a tela também vai ser gravada.", r["log"])
-        self.assertEqual(self.fila.adicionados, [("gravacoes/2026-10-17_10-00", {"agentes": ["secretario"], "visual": "aula"})])
+        self.assertEqual(self.fila.adicionados,
+                         [("gravacoes/2026-10-17_10-00", {"agentes": ["secretario"], "visual": "aula", "manter_tela": True})])
         self.assertFalse(parar_com.exists())
 
     def test_so_gravar_guarda_a_pasta_e_nao_poe_na_fila(self):
@@ -90,6 +91,12 @@ class TestGravador(unittest.TestCase):
         r = self.grav.resumo()
         self.assertEqual((r["estado"], r["pasta"], r["trabalho"]), (g.PRONTO, "gravacoes/2026-10-28_10-00", None))
         self.assertEqual(self.fila.adicionados, [])
+
+    def test_tela_so_e_apagada_se_desmarcada_de_proposito(self):
+        self.grav.iniciar({"tela": True, "opcoes": {"manter_tela": False}})
+        self.proc.escrever("Gravado: 0:10 em g/x\n", fechar=True)
+        self.grav._thread.join(5)
+        self.assertIs(self.fila.adicionados[0][1]["manter_tela"], False)
 
     def test_juntar_antes_da_fila_e_falha_so_avisa(self):
         juntados = []

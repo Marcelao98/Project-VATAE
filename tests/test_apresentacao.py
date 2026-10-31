@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import tempfile
 import unittest
@@ -78,9 +79,23 @@ class TestMontar(unittest.TestCase):
             pasta = Path(d)
             (pasta / "fonte.json").write_text(json.dumps({"tipo": "gravacao", "data": "2026-10-31_13-43"}))
             (pasta / "apresentacao-pitch.md").write_text(ROTEIRO, encoding="utf-8")
-            feitos = a.montar(pasta)
+            feitos = a.montar(pasta, formatos=("html",))
             self.assertEqual(feitos, [pasta / "apresentacao-pitch.html"])
             self.assertIn("31/10/2026", feitos[0].read_text(encoding="utf-8"))
+
+    @unittest.skipUnless(importlib.util.find_spec("pptx"), "python-pptx não instalado")
+    def test_pptx_tem_capa_slides_e_notas(self):
+        from pptx import Presentation
+        with tempfile.TemporaryDirectory() as d:
+            pasta = Path(d)
+            (pasta / "apresentacao-pitch.md").write_text(ROTEIRO, encoding="utf-8")
+            feitos = a.montar(pasta)   # padrão: .pptx
+            self.assertEqual(feitos, [pasta / "apresentacao-pitch.pptx"])
+            prs = Presentation(feitos[0])
+            self.assertEqual(len(prs.slides), 4)
+            self.assertEqual(prs.slides[2].notes_slide.notes_text_frame.text, "mostrar o REC")
+            textos = " ".join(f.text_frame.text for f in prs.slides[1].shapes if f.has_text_frame)
+            self.assertIn("Como funciona", textos)
 
     def test_cli_sem_roteiro_da_erro(self):
         with tempfile.TemporaryDirectory() as d:

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.19.0 — 2026-10-31
+
+- **Juntar a gravação num arquivo só, para enviar**: `vatty juntar gravacoes/<data>` mistura o som do PC e o
+  microfone (sem baixar o volume, com limitador) embaixo da tela, cada faixa deslocada pelo horário real em que
+  começou, e grava `video.mp4` ao lado (a imagem é copiada, sem recodificar; ~5 s para 2:40). Sem tela sai
+  `audio.m4a`. No painel, a opção "Juntar num arquivo só, para enviar" faz isso logo depois de parar, antes da
+  transcrição (que pode apagar o `tela.mp4`); se falhar, só avisa.
+- 579 testes. **Verificado de verdade**: uma gravação de 2:39 com tela no Fedora 44 (Wayland) virou um
+  `video.mp4` com o som 2,3 s atrasado, como a tela pedia.
+
 ## 0.18.1 — 2026-10-31
 
 - **`vatty verificar`**: confere cada peça neste computador (as do painel e mais as do sistema: Tesseract em

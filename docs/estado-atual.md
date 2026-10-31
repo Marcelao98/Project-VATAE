@@ -36,8 +36,10 @@ O roteiro de teste do Fedora já está escrito em `docs/testes-reais.md`, seçã
 "A fazer: Vatty no Fedora (0.18.0)". **É a prioridade número 1**: sem isso, cada parte nova é construída
 em cima de algo que ninguém viu funcionar.
 
-**Andamento no Fedora (31/10):** item 0 (instalar) **ok**, anotado em `docs/testes-reais.md`. De quebra veio o
-`vatty verificar [--instalar]` (confere tudo e instala o que falta). Próximo: item 1 (som).
+**Andamento no Fedora (31/10):** itens 0 (instalar), 1 (som; microfone precisou baixar para 40%) e 3 (painel
+com tela) rodados, anotados em `docs/testes-reais.md`. Novos: `vatty verificar [--instalar]` e `vatty juntar` (um `video.mp4` para enviar).
+Falta: item 2 inteiro pela CLI (cancelar, Ctrl+C, segunda vez sem perguntar), medir a sincronia, item 4
+(YouTube e agentes) e saber por que o `tela.mp4` foi apagado com "Guardar o vídeo da tela".
 
 ## 3. Engenharia: como fazer a Vatty crescer (web, desktop, app)
 

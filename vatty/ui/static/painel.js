@@ -102,6 +102,7 @@ function opcoesTranscricao() {
   if ($("p-slides").checked && !$("p-slides").disabled) o.slides = true;
   if (depois() === "gravar") o.so_gravar = true;
   if (painel.fonte === "tela" && $("p-manter-tela").checked) o.manter_tela = true;
+  if (painel.fonte !== "youtube" && $("p-juntar").checked) o.juntar = true;
   if (depois() === "agentes") { o.agentes = agentesMarcados(); o.objetivo = $("p-objetivo").value.trim(); }
   return o;
 }
@@ -218,6 +219,7 @@ function desenharDeck() {
   }
   if (g && g.estado === "pronto" && !g.trabalho && fase !== "escolher") {
     deck.replaceChildren(el("h3", {}, "Gravado"), el("p", {}, "Ficou em " + g.pasta + ", sem transcrever."),
+      ...(g.juntado ? [el("p", {}, "Para enviar: " + g.juntado)] : []),
       el("button", { class: "btn btn-calmo", onclick: novoPedido }, "Gravar outra"));
     return;
   }
@@ -286,6 +288,8 @@ function desenharPronto(lista) {
     const slug = t.pasta.split(/[\\/]/).pop();
     const bloco = el("div", { class: "trab" }, el("b", {}, slug), el("small", { class: "dica" }, "Guardado em " + t.pasta),
       el("div", { class: "linha-btn" }, el("button", { class: "btn btn-principal", onclick: () => abrirVideo(slug) }, "Abrir o texto")));
+    const juntado = painel.gravacao && painel.gravacao.pasta === t.entrada && painel.gravacao.juntado;
+    if (juntado) bloco.append(el("small", { class: "dica" }, "Arquivo único para enviar: " + juntado));
     if (p.slides) {
       const caixa = el("div", { class: "pedido" }, el("span", { class: "dica" }, "Procurando os slides..."));
       bloco.append(el("h3", { style: "margin-top:14px" }, "Slides com os prints"), caixa);

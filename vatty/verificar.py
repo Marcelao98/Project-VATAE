@@ -50,6 +50,7 @@ PIP = {
     "yt-dlp": ["yt-dlp[default,curl-cffi]"],
     "falantes": ["sherpa-onnx"],
     "ata": ["python-docx", "reportlab"],
+    "pptx": ["python-pptx"],
     "portal": ["jeepney"],
     "som-windows": ["pyaudiowpatch"],
 }

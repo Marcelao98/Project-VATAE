@@ -1,4 +1,3 @@
-import argparse
 import io
 import json
 import tempfile
@@ -10,6 +9,7 @@ from unittest import mock
 import numpy as np
 
 from vatty import aula, cli, fonte, gravacao, ocr, quadros, visual
+from vatty.aplicacao import Opcoes, pipeline
 from vatty.motor import Resultado, Segmento
 
 VIDEO = fonte.Video(
@@ -33,7 +33,7 @@ class TestFluxoYoutube(unittest.TestCase):
             p = mock.patch.object(fonte, alvo, valor)
             p.start()
             self.addCleanup(p.stop)
-        self.whisper = mock.patch.object(cli, "_whisper", return_value=Resultado(
+        self.whisper = mock.patch.object(pipeline, "_whisper", return_value=Resultado(
             fonte="x", duracao_s=60.0, modelo="large-v3-turbo", idioma="pt",
             segmentos=[Segmento(0, 1, "do whisper")]))
         self.whisper.start()
@@ -58,7 +58,7 @@ class TestFluxoYoutube(unittest.TestCase):
         self.assertEqual(codigo, 0)
         self.assertIn("Olá, turma.", out)  # mostrou o trecho antes de perguntar
         self.assertEqual(self.transcricao(), "[00:01] Olá, turma.\n")
-        cli._whisper.assert_not_called()
+        pipeline._whisper.assert_not_called()
 
     def test_usuario_prefere_whisper(self):
         codigo, _, _ = self.rodar(respostas=["x", "w"])
@@ -101,13 +101,13 @@ class _Tom:
         pass
 
 
-def _whisper_falso(caminho, args, idioma):
+def _whisper_falso(caminho, opcoes, idioma, *_, **__):
     fala = {"sistema": Segmento(0.0, 2.0, "Bom dia, pessoal."), "microfone": Segmento(3.0, 4.0, "Bom dia!")}
     return Resultado(fonte="x", duracao_s=5.0, modelo="large-v3-turbo", idioma="pt",
                      segmentos=[fala[Path(caminho).stem]])
 
 
-def _whisper_falso_arquivo(caminho, args, idioma):
+def _whisper_falso_arquivo(caminho, opcoes, idioma, *_, **__):
     return Resultado(fonte="x", duracao_s=60.0, modelo="large-v3-turbo", idioma="pt",
                      segmentos=[Segmento(0.0, 2.0, "Texto do áudio.")])
 
@@ -129,7 +129,7 @@ class TestGravacaoCli(unittest.TestCase):
         for objeto, nome, valor in (
             (gravacao, "abrir_entradas", lambda microfone=False: [_Tom("sistema")] + ([_Tom("microfone")] if microfone else [])),
             (gravacao, "gravar", gravar_sem_esperar),
-            (cli, "_whisper", _whisper_falso),
+            (pipeline, "_whisper", _whisper_falso),
         ):
             p = mock.patch.object(objeto, nome, valor)
             p.start()
@@ -276,7 +276,7 @@ class TestVisualCli(unittest.TestCase):
             (aula, "detectar", self.detectar),
             (aula, "palpite", lambda *a, **kw: self.palpite),
             (aula, "montar", self.montar),
-            (cli, "_whisper", _whisper_falso_arquivo),
+            (pipeline, "_whisper", _whisper_falso_arquivo),
         ):
             p = mock.patch.object(objeto, nome, valor)
             p.start()
@@ -391,7 +391,7 @@ class TestVisualCli(unittest.TestCase):
         pasta_audio = self.raiz / "gravacoes" / "2026-10-10_14-30"
         pasta_audio.mkdir(parents=True)
         (pasta_audio / "sistema.wav").write_bytes(b"x")
-        with mock.patch.object(cli, "_whisper", _whisper_falso):
+        with mock.patch.object(pipeline, "_whisper", _whisper_falso):
             codigo, out, _ = self.rodar(str(pasta_audio), "--visual", "aula", "--manter-audio")
         self.assertEqual(codigo, 0)
         self.assertIn("não se aplica", out)
@@ -403,14 +403,13 @@ class TestOpcoesDoWhisper(unittest.TestCase):
 
     def chamar(self, *argv, em_gravacao=False):
         # --preprocessar nao: estes testes olham só as opções do Whisper (o arquivo "a.wav" nem existe)
-        args = cli._argumentos(["entrada.opus", "--preprocessar", "nao", *argv])
-        if em_gravacao:
-            args = argparse.Namespace(**{**vars(args), "em_gravacao": True})
+        opcoes = Opcoes.de_dict(vars(cli._argumentos(["entrada.opus", "--preprocessar", "nao", *argv])))
         resultado = Resultado(fonte="x", duracao_s=1.0, modelo="m", idioma="pt")
         with mock.patch.object(cli.motor, "modelo_em_cache", return_value=True), \
                 mock.patch.object(cli.motor, "transcrever", return_value=resultado) as transcrever, \
                 redirect_stdout(io.StringIO()):
-            cli._whisper(Path("a.wav"), args, "pt")
+            pipeline._whisper(Path("a.wav"), opcoes, "pt", cli.DecisorTerminal(), cli.ProgressoTerminal(),
+                              em_gravacao=em_gravacao)
         return transcrever.call_args.kwargs
 
     def test_arquivo_e_youtube_ficam_como_antes(self):
@@ -447,18 +446,18 @@ class TestOpcoesDoWhisper(unittest.TestCase):
     def test_do_gravacao_marca_as_duas_faixas_como_gravacao(self):
         vistos = []
 
-        def whisper(caminho, args, idioma):
-            vistos.append(getattr(args, "em_gravacao", False))
+        def whisper(caminho, opcoes, idioma, decisor, progresso, em_gravacao=False):
+            vistos.append(em_gravacao)
             return Resultado(fonte="x", duracao_s=1.0, modelo="m", idioma="pt", segmentos=[Segmento(0.0, 1.0, "oi")])
 
-        args = cli._argumentos(["gravacoes/2026-10-10_09-00"])
+        opcoes = Opcoes.de_dict(vars(cli._argumentos(["gravacoes/2026-10-10_09-00"])))
         faixas = {"sistema": Path("sistema.wav"), "microfone": Path("microfone.wav")}
         with mock.patch.object(gravacao, "faixas_na_pasta", return_value=faixas), \
-                mock.patch.object(cli, "_whisper", whisper), redirect_stdout(io.StringIO()):
-            _, dados, resultado = cli._do_gravacao(args, Path("gravacoes/2026-10-10_09-00"))
+                mock.patch.object(pipeline, "_whisper", whisper), redirect_stdout(io.StringIO()):
+            _, dados, resultado = pipeline._do_gravacao(opcoes, Path("gravacoes/2026-10-10_09-00"),
+                                                         cli.DecisorTerminal(), cli.ProgressoTerminal())
         self.assertEqual(vistos, [True, True])
         self.assertEqual(resultado.faixas, ["sistema", "microfone"])
-        self.assertFalse(getattr(args, "em_gravacao", False))  # os args originais não mudam
 
 
 class TestPreprocessarNaCli(unittest.TestCase):
@@ -473,13 +472,13 @@ class TestPreprocessarNaCli(unittest.TestCase):
                          "beguiling-drafter")
 
     def _rodar(self, preparo, *argv):
-        args = cli._argumentos(["entrada.opus", *argv])
+        opcoes = Opcoes.de_dict(vars(cli._argumentos(["entrada.opus", *argv])))
         resultado = Resultado(fonte="x", duracao_s=1.0, modelo="m", idioma="pt")
         with mock.patch.object(cli.motor, "modelo_em_cache", return_value=True), \
                 mock.patch.object(cli.motor, "transcrever", return_value=resultado) as transcrever, \
                 mock.patch.object(cli.preprocessar, "preparar", return_value=preparo) as preparar, \
                 redirect_stdout(io.StringIO()):
-            devolvido = cli._whisper(Path("a.wav"), args, "pt")
+            devolvido = pipeline._whisper(Path("a.wav"), opcoes, "pt", cli.DecisorTerminal(), cli.ProgressoTerminal())
         return devolvido, transcrever.call_args.kwargs, preparar
 
     def test_o_que_o_preparo_devolve_chega_ao_motor_e_ao_resultado(self):
@@ -500,11 +499,11 @@ class TestPreprocessarNaCli(unittest.TestCase):
     def test_pergunta_enter_aceita_n_recusa(self):
         for resposta, esperado in (("", True), ("s", True), ("n", False), ("não", False)):
             with mock.patch("builtins.input", return_value=resposta), redirect_stdout(io.StringIO()):
-                self.assertIs(cli._perguntar_preprocessar(None), esperado, resposta)
+                self.assertIs(cli.DecisorTerminal().preprocessar(None), esperado, resposta)
 
     def test_pergunta_cancelada_sem_entrada(self):
         with mock.patch("builtins.input", side_effect=EOFError), self.assertRaises(cli.Erro):
-            cli._perguntar_preprocessar(None)
+            cli.DecisorTerminal().preprocessar(None)
 
 
 if __name__ == "__main__":

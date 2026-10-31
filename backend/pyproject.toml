@@ -26,8 +26,8 @@ vatty = "vatty.cli:main"
 # apelido antigo, para não quebrar o que já estava em uso
 ata = "vatty.cli:main"
 
-[tool.setuptools]
-packages = ["vatty"]
+[tool.setuptools.packages.find]
+include = ["vatty*"]
 
 [project.urls]
 Repositorio = "https://github.com/Marcelao98/Project-VATAE"

@@ -1,14 +1,18 @@
-"""CLI fina: traduz argumentos, chama as camadas e pergunta ao usuário. `vatty <url-ou-arquivo>`."""
+"""
+CLI fina: traduz argumentos, imprime e pergunta no terminal. `vatty <url-ou-arquivo>`.
+
+O fluxo em si (legenda ou Whisper, visual, pasta do vídeo) mora em
+`aplicacao.pipeline`; aqui só ficam o `Decisor` e o `Progresso` do terminal.
+"""
 
 import argparse
 import sys
-import tempfile
 import textwrap
 import time
 from pathlib import Path
 
-from . import aula, fonte, gravacao, legenda, motor, ocr, pasta, preprocessar, quadros, visual
-from .audio import ErroDeDecodificacao, FfmpegAusente
+from . import gravacao, motor, preprocessar
+from .aplicacao import ErroPipeline, Opcoes, PerguntaLegenda, PerguntaVisual, pipeline, relogio
 
 PREPROCESSAR_ESCOLHAS = ("perguntar", "sim", "nao")
 TEXTO_ESCOLHAS = ("perguntar", "legenda", "whisper")
@@ -18,19 +22,8 @@ AVISO_CONSENTIMENTO = ("Aviso: gravar uma conversa sem avisar os outros particip
                        "onde você mora. Avise quem estiver na gravação.")
 
 
-class Erro(Exception):
-    """Erro para mostrar ao usuário e sair com código 1."""
-
-
-def _relogio(segundos: float) -> str:
-    m, s = divmod(int(segundos), 60)
-    h, m = divmod(m, 60)
-    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
-
-
-def _mostrar_progresso(atual: float, total: float) -> None:
-    porcento = int(atual / total * 100) if total else 100
-    print(f"\r  {porcento:3d}%  {_relogio(atual)} / {_relogio(total)}", end="", flush=True)
+Erro = ErroPipeline  # nome antigo: erro para mostrar ao usuário e sair com código 1
+_relogio = relogio
 
 
 def _opcoes_comuns(p) -> None:
@@ -74,263 +67,98 @@ def _argumentos(argv):
     return p.parse_args(argv)
 
 
-# --- Whisper -----------------------------------------------------------------
+# --- O terminal como Decisor e Progresso -------------------------------------
 
-def _whisper(caminho, args, idioma):
-    hotwords = None
-    if args.termos:
-        hotwords = motor.combinar_termos(c.read_text(encoding="utf-8") for c in args.termos) or None
-    if not motor.modelo_em_cache(args.modelo):
-        print(f"Primeira execução com '{args.modelo}': o modelo (cerca de 1,5 GB) vai ser baixado "
-              "pro cache do Hugging Face. Isso só acontece uma vez.")
-    modo = getattr(args, "horario_por_palavra", "auto")
-    palavras = modo == "sim" or (modo == "auto" and getattr(args, "em_gravacao", False))
+def _ler(prompt: str) -> str:
     try:
-        preparo = preprocessar.preparar(
-            caminho, getattr(args, "preprocessar", "nao"), perguntar=_perguntar_preprocessar,
-            interativo=sys.stdin.isatty(), ruido_modelo=getattr(args, "ruido_modelo", None))
-        print("Transcrevendo com Whisper...")
-        extras = {"carregar_audio": preparo.carregar_audio} if preparo.carregar_audio else {}
-        resultado = motor.transcrever(caminho, modelo=args.modelo, idioma=idioma, hotwords=hotwords,
-                                      palavras=palavras, vad_silencio_ms=getattr(args, "vad_silencio_ms", None),
-                                      progresso=_mostrar_progresso, **extras)
-    except (FileNotFoundError, FfmpegAusente, ErroDeDecodificacao) as e:
-        raise Erro(str(e)) from e
-    resultado.preprocessamento = preparo.info
-    print()
-    for aviso in resultado.avisos:
-        print(f"Aviso: {aviso}")
-    if resultado.refeitos:
-        print(f"{len(resultado.refeitos)} trecho(s) com sinal de loop refeito(s) sem os termos:")
-        for r in resultado.refeitos:
-            print(f"  [{_relogio(r['inicio'])}-{_relogio(r['fim'])}] {r['motivo']}")
-    return resultado
+        return input(prompt).strip().lower()
+    except EOFError:
+        raise Erro("cancelado")
 
 
-def _perguntar_preprocessar(diagnostico) -> bool:
-    """Enter aceita a recomendação (aplicar), como no `--visual auto`."""
-    while True:
+class DecisorTerminal:
+    """Pergunta no terminal. Sem terminal (`isatty` falso), o pipeline pede a opção explícita."""
+
+    @property
+    def interativo(self) -> bool:
+        return sys.stdin.isatty()
+
+    def legenda(self, pergunta: PerguntaLegenda) -> str:
+        tipo = "automática do YouTube" if pergunta.automatica else "manual (escrita pelo autor)"
+        ind = pergunta.indicadores
+        print(f"\nLegenda {tipo}, '{pergunta.chave}':")
+        print(f"  {ind['palavras']} palavras, cobre {ind['cobertura_pct']}% do vídeo")
+        print(f"  pontuação: {ind['pontuacao_por_100']} sinais a cada 100 palavras")
+        print(f"  palavras com maiúscula: {ind['maiusculas_pct']}%")
+        print(f"  marcas como [Música]: {ind['marcas']}")
+        print("\nTrechos:")
+        for inicio, trecho in pergunta.amostras:
+            corpo = textwrap.fill(trecho, width=96, initial_indent="    ", subsequent_indent="    ")
+            print(f"\n  [{relogio(inicio)}]\n{corpo}")
+        print()
+        while True:
+            resposta = _ler("Usar a [l]egenda ou transcrever com [w]hisper? ")
+            if resposta in ("l", "legenda"):
+                return "legenda"
+            if resposta in ("w", "whisper"):
+                return "whisper"
+
+    def preprocessar(self, diagnostico) -> bool:
+        """Enter aceita a recomendação (aplicar), como no `--visual auto`."""
+        while True:
+            resposta = _ler("Aplicar o pré-processamento (tirar ronco e ruído, subir a voz)? [S/n] ")
+            if resposta in ("", "s", "sim"):
+                return True
+            if resposta in ("n", "nao", "não"):
+                return False
+
+    def visual(self, pergunta: PerguntaVisual) -> bool:
+        ind = pergunta.indicadores
+        print("\nO que a tela mostra:")
+        print(f"  {ind['trocas']} trocas de tela ({ind['trocas_por_min']} por minuto), "
+              f"uma a cada {relogio(ind['tempo_medio_s'])} em média")
+        print(f"  {ind['palavras_por_tela']} palavras por tela (lidas em poucas amostras)")
+        print(f"  formato: {'vertical' if ind['vertical'] else 'horizontal'}")
+        print(f"Palpite: {pergunta.perfil} ({pergunta.motivo})")
+        if pergunta.perfil == "corte":
+            print("  O perfil 'corte' (vídeo curto, com cortes rápidos) ainda não existe: só aula por enquanto.")
+        padrao = pergunta.perfil == "aula"
+        resposta = _ler(f"Extrair os slides com OCR? [{'S/n' if padrao else 's/N'}] ")
+        return padrao if not resposta else resposta in ("s", "sim", "y", "yes")
+
+    def apagar_audio(self, pasta_audio: Path) -> bool | None:
+        if not self.interativo:
+            print(f"Áudio guardado em {pasta_audio} (use --apagar-audio para apagar).")
+            return None
         try:
-            resposta = input("Aplicar o pré-processamento (tirar ronco e ruído, subir a voz)? [S/n] ").strip().lower()
+            return input("Apagar os áudios gravados? [s/N] ").strip().lower() in ("s", "sim", "y", "yes")
         except EOFError:
-            raise Erro("cancelado")
-        if resposta in ("", "s", "sim"):
-            return True
-        if resposta in ("n", "nao", "não"):
             return False
 
 
-# --- Legenda -----------------------------------------------------------------
+class ProgressoTerminal:
+    """Imprime as mensagens; o andamento vira uma linha que se reescreve (`\\r`)."""
 
-def _mostrar_legenda(escolha, segmentos, duracao) -> None:
-    tipo = "automática do YouTube" if escolha.automatica else "manual (escrita pelo autor)"
-    ind = legenda.indicadores(segmentos, duracao)
-    print(f"\nLegenda {tipo}, '{escolha.chave}':")
-    print(f"  {ind['palavras']} palavras, cobre {ind['cobertura_pct']}% do vídeo")
-    print(f"  pontuação: {ind['pontuacao_por_100']} sinais a cada 100 palavras")
-    print(f"  palavras com maiúscula: {ind['maiusculas_pct']}%")
-    print(f"  marcas como [Música]: {ind['marcas']}")
-    print("\nTrechos:")
-    for inicio, trecho in legenda.amostras(segmentos):
-        corpo = textwrap.fill(trecho, width=96, initial_indent="    ", subsequent_indent="    ")
-        print(f"\n  [{_relogio(inicio)}]\n{corpo}")
-    print()
+    def __init__(self):
+        self._ultimo = {}
 
+    def mensagem(self, texto: str) -> None:
+        print(texto)
 
-def _perguntar() -> str:
-    while True:
-        try:
-            resposta = input("Usar a [l]egenda ou transcrever com [w]hisper? ").strip().lower()
-        except EOFError:
-            raise Erro("cancelado")
-        if resposta in ("l", "legenda"):
-            return "legenda"
-        if resposta in ("w", "whisper"):
-            return "whisper"
+    def aviso(self, texto: str) -> None:
+        print(f"Aviso: {texto}")
 
-
-# --- Fluxos ------------------------------------------------------------------
-
-def _do_youtube(args):
-    """URL -> (pasta, fonte.json, resultado). Legenda primeiro, Whisper se o usuário quiser."""
-    try:
-        from yt_dlp.utils import DownloadError
-    except ImportError:  # pragma: no cover
-        DownloadError = RuntimeError
-
-    try:
-        print("Lendo o vídeo no YouTube...")
-        video = fonte.inspecionar(args.entrada)
-        print(f"{video.titulo} ({_relogio(video.duracao_s)})")
-        lang = video.idioma if args.lang == "auto" else args.lang
-        escolha = None
-        if lang and args.texto != "whisper":
-            escolha = legenda.escolher(video.legendas, video.legendas_automaticas, lang)
-        if escolha is None and args.texto != "whisper":
-            print(f"Sem legenda confiável em '{lang or '?'}': vai com Whisper.")
-        if escolha and args.texto == "perguntar" and not sys.stdin.isatty():
-            raise Erro("o vídeo tem legenda, mas não há terminal para perguntar. "
-                       "Use --texto legenda ou --texto whisper.")
-
-        destino = args.saida / pasta.slug(video.titulo, video.id)
-        with tempfile.TemporaryDirectory(prefix="vatty-") as tmp:
-            if escolha:
-                vtt = fonte.baixar_legenda(video.url, escolha.chave, escolha.automatica, Path(tmp))
-                segmentos = legenda.ler_vtt(vtt.read_text(encoding="utf-8"))
-                decisao = args.texto
-                if decisao == "perguntar":
-                    _mostrar_legenda(escolha, segmentos, video.duracao_s)
-                    decisao = _perguntar()
-                if decisao == "legenda":
-                    resultado = legenda.para_resultado(segmentos, video.url, video.duracao_s, lang, escolha)
-                    return destino, video.para_json(), resultado
-            print("Baixando o áudio...")
-            audio = fonte.baixar_audio(video.url, Path(tmp))
-            idioma = None if args.lang == "auto" else args.lang
-            resultado = _whisper(audio, args, idioma)
-            resultado.fonte = video.url
-            # o áudio some junto com a pasta temporária: só o texto fica
-            return destino, video.para_json(), resultado
-    except DownloadError as e:
-        raise Erro(f"YouTube: {e}") from e
-
-
-def _do_gravacao(args, pasta_audio: Path):
-    """Pasta de gravação (sistema.wav e/ou microfone.wav) -> um texto só, com `falante`."""
-    faixas = gravacao.faixas_na_pasta(pasta_audio)
-    if not faixas:
-        raise Erro(f"não achei sistema.wav nem microfone.wav em {pasta_audio}")
-    idioma = None if args.lang == "auto" else args.lang
-    args_faixa = argparse.Namespace(**{**vars(args), "em_gravacao": True})
-    resultados = {}
-    for nome, caminho in faixas.items():
-        print(f"Faixa '{nome}'...")
-        resultados[nome] = _whisper(caminho, args_faixa, idioma)
-    resultado = gravacao.juntar_faixas(resultados)
-    dados = {"tipo": "gravacao", "titulo": f"Gravação {pasta_audio.name}", "data": pasta_audio.name,
-             "duracao_s": resultado.duracao_s, "faixas": list(faixas), "falantes": gravacao.FALANTES}
-    return args.saida / pasta.slug(f"gravacao {pasta_audio.name}"), dados, resultado
-
-
-def _apagar_audio(args, pasta_audio: Path) -> None:
-    """Depois que o texto foi gravado: pergunta se apaga os .wav (padrão: guardar)."""
-    arquivos = list(gravacao.faixas_na_pasta(pasta_audio).values())
-    decisao = args.apagar_audio
-    if decisao is None:
-        if not sys.stdin.isatty():
-            print(f"Áudio guardado em {pasta_audio} (use --apagar-audio para apagar).")
-            return
-        try:
-            decisao = input("Apagar os áudios gravados? [s/N] ").strip().lower() in ("s", "sim", "y", "yes")
-        except EOFError:
-            decisao = False
-    if not decisao:
-        print(f"Áudio guardado em {pasta_audio}.")
-        return
-    for arquivo in arquivos:
-        arquivo.unlink()
-    try:
-        pasta_audio.rmdir()  # só se ficou vazia: nunca apaga o que não é nosso
-    except OSError:
-        pass
-    print("Áudio apagado.")
-
-
-def _do_arquivo(args):
-    caminho = Path(args.entrada)
-    if caminho.is_dir():
-        return _do_gravacao(args, caminho)
-    if not caminho.is_file():
-        raise Erro(f"arquivo não encontrado: {caminho}")
-    print(f"Transcrevendo {caminho.name}...")
-    resultado = _whisper(caminho, args, None if args.lang == "auto" else args.lang)
-    dados = {"tipo": "arquivo", "caminho": str(caminho.resolve()), "titulo": caminho.stem,
-             "duracao_s": resultado.duracao_s}
-    return args.saida / pasta.slug(caminho.stem), dados, resultado
-
-
-# --- Visual (perfil aula) ----------------------------------------------------
-
-def _progresso_visual(fase):
-    ultimo = [-1]
-
-    def mostrar(atual, total):
+    def andamento(self, fase: str, atual: float, total: float) -> None:
         porcento = int(atual / total * 100) if total else 100
-        if porcento != ultimo[0]:  # só quando o número muda: um quadro por segundo seria muito texto
-            ultimo[0] = porcento
+        if fase == "whisper":
+            print(f"\r  {porcento:3d}%  {relogio(atual)} / {relogio(total)}", end="", flush=True)
+        elif porcento != self._ultimo.get(fase):  # só quando o número muda: um quadro por segundo seria muito texto
+            self._ultimo[fase] = porcento
             print(f"\r  {fase} {porcento:3d}%", end="", flush=True)
-    return mostrar
 
-
-def _mostrar_palpite(ind: dict, perfil: str, motivo: str) -> None:
-    print("\nO que a tela mostra:")
-    print(f"  {ind['trocas']} trocas de tela ({ind['trocas_por_min']} por minuto), "
-          f"uma a cada {_relogio(ind['tempo_medio_s'])} em média")
-    print(f"  {ind['palavras_por_tela']} palavras por tela (lidas em poucas amostras)")
-    print(f"  formato: {'vertical' if ind['vertical'] else 'horizontal'}")
-    print(f"Palpite: {perfil} ({motivo})")
-    if perfil == "corte":
-        print("  O perfil 'corte' (vídeo curto, com cortes rápidos) ainda não existe: só aula por enquanto.")
-
-
-def _confirmar_aula(perfil: str) -> bool:
-    padrao = perfil == "aula"
-    try:
-        resposta = input(f"Extrair os slides com OCR? [{'S/n' if padrao else 's/N'}] ").strip().lower()
-    except EOFError:
-        raise Erro("cancelado")
-    return padrao if not resposta else resposta in ("s", "sim", "y", "yes")
-
-
-def _lang_visual(args, dados_fonte) -> str | None:
-    if args.lang != "auto":
-        return args.lang
-    return (dados_fonte.get("idioma") or "")[:2] or None
-
-
-def _fazer_visual(args, destino: Path, dados_fonte: dict) -> None:
-    idiomas = ocr.idiomas_para(_lang_visual(args, dados_fonte))
-    exe = ocr.verificar(idiomas)  # antes de baixar qualquer coisa
-    with tempfile.TemporaryDirectory(prefix="vatty-visual-") as tmp:
-        if fonte.eh_url(args.entrada):
-            print("\nBaixando o vídeo (só a imagem, até 720p)...")
-            video = fonte.baixar_video(dados_fonte.get("url") or args.entrada, Path(tmp))
-        else:
-            video = Path(args.entrada)
-        print("Procurando as trocas de tela...")
-        deteccao = aula.detectar(video, progresso=_progresso_visual("tela"))
+    def fim_andamento(self) -> None:
         print()
-        if not deteccao.slides:
-            raise Erro("não achei nenhuma tela no vídeo")
-        if deteccao.truncado:
-            print(f"Aviso: passou de {visual.MAX_SLIDES} trocas de tela; só as primeiras ficam.")
-        if args.visual == "auto":
-            ind, (perfil, motivo) = aula.palpite(video, deteccao, tmp, idiomas=idiomas, exe=exe)
-            _mostrar_palpite(ind, perfil, motivo)
-            if not _confirmar_aula(perfil):
-                print("Visual pulado.")
-                return
-        print(f"Lendo o texto de {len(deteccao.slides)} slide(s) com o Tesseract...")
-        dados = aula.montar(video, deteccao, destino, idiomas=idiomas, exe=exe, progresso=_progresso_visual("slides"),
-                            parametros={"intervalo_s": visual.INTERVALO_S, "limiar_mudanca": visual.LIMIAR_MUDANCA,
-                                        "max_slides": visual.MAX_SLIDES, "escolha": args.visual})
-        print()
-    caminho = pasta.gravar_visual(destino, dados)
-    print(f"Visual: {len(dados['eventos'])} slide(s) em {caminho.parent} (visual.json e frames/).")
-
-
-def _visual(args, destino: Path, dados_fonte: dict) -> int:
-    """Roda o visual depois do texto. Se falhar, o texto já está salvo: avisa e sai com código 1."""
-    try:
-        from yt_dlp.utils import DownloadError
-    except ImportError:  # pragma: no cover
-        DownloadError = RuntimeError
-    try:
-        _fazer_visual(args, destino, dados_fonte)
-    except (Erro, ocr.ErroOcr, quadros.ErroDeVideo, FfmpegAusente, FileNotFoundError, RuntimeError, DownloadError) as e:
-        print(f"\nErro no visual: {e}\nO texto já está salvo em {destino}.", file=sys.stderr)
-        return 1
-    return 0
+        self._ultimo.clear()
 
 
 # --- Gravação ----------------------------------------------------------------
@@ -385,26 +213,14 @@ def _main_gravar(argv) -> int:
 
 def _executar(args) -> int:
     """Produz a pasta do vídeo para `args.entrada` (URL, arquivo ou pasta de gravação)."""
-    comeco = time.perf_counter()
-    visual_pedido = getattr(args, "visual", "nenhum")
-    if visual_pedido == "auto" and not sys.stdin.isatty():
-        print("\nErro: --visual auto precisa de um terminal para perguntar. Use --visual aula ou --visual nenhum.",
-              file=sys.stderr)
-        return 1
     try:
-        destino, dados_fonte, resultado = (_do_youtube if fonte.eh_url(args.entrada) else _do_arquivo)(args)
+        saida = pipeline.processar(Opcoes.de_dict(vars(args)), DecisorTerminal(), ProgressoTerminal())
     except Erro as e:
         print(f"\nErro: {e}", file=sys.stderr)
         return 1
-    txt = pasta.gravar(destino, dados_fonte, resultado)
-    gasto = time.perf_counter() - comeco
-    print(f"Pronto em {_relogio(gasto)} (texto de {resultado.origem}, {resultado.duracao_s:.0f}s de áudio): {txt.parent}")
-    if dados_fonte.get("tipo") == "gravacao":
-        if visual_pedido != "nenhum":
-            print("Aviso: --visual não se aplica a uma gravação de áudio.")
-        _apagar_audio(args, Path(args.entrada))
-    elif visual_pedido != "nenhum":
-        return _visual(args, destino, dados_fonte)
+    if saida.erro_visual:
+        print(f"\nErro no visual: {saida.erro_visual}\nO texto já está salvo em {saida.destino}.", file=sys.stderr)
+        return 1
     return 0
 
 

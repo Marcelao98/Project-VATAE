@@ -112,7 +112,21 @@ terminal, a CLI pede `aula` ou `nenhum`). URL baixa só a imagem, até 720p
 quadros, 0,5% de tela mudada, 10x10 de bloco, teto de 300 slides, 8 palavras
 no palpite) foram medidos só em vídeo sintético: ajustar com vídeo real.
 
-### Camada de código (`vatty/`)
+### Repositório (monorepo)
+
+```
+backend/    pacote Python `vatty` (pyproject.toml, vatty/, tests/)
+frontend/   React + TypeScript (ainda vazio)
+termos/     listas de hotwords
+.claude/    agentes
+docs/arquitetura.md   camadas e o plano de evolução (API, front, desktop)
+```
+
+Instalação: `pip install -e backend`. A pasta do vídeo tem `"versao"`
+(`pasta.VERSAO_CONTRATO`) no `fonte.json`, `transcricao.json` e `visual.json`:
+sobe quando um campo muda de sentido ou sai; campo novo opcional não muda.
+
+### Camada de código (`backend/vatty/`)
 
 - `fonte.py`: URL do YouTube → `fonte.json`, legendas disponíveis, download
   da legenda ou do áudio via `yt-dlp`. Arquivo local passa direto.
@@ -155,9 +169,17 @@ no palpite) foram medidos só em vídeo sintético: ajustar com vídeo real.
 - `texto.py`: segmentos → parágrafos. Em gravação com duas faixas, um canal
   por vez (`por_canal`), `formatar_canal` (`[mm:ss]` por parágrafo) e
   `linha_do_tempo`.
-- `cli.py`: casca fina. `vatty <url-arquivo-ou-pasta-de-gravacao>` produz a pasta
-  do vídeo; `vatty gravar` grava (e com `--transcrever` já transcreve). Depois de
-  transcrever uma gravação, pergunta se apaga os `.wav` (padrão: guardar).
+- `aplicacao/`: o fluxo inteiro (legenda ou Whisper, gravação, visual, pasta do
+  vídeo) em `pipeline.processar(opcoes, decisor, progresso)`, sem `print` nem
+  `input`. `portas.py` define o `Decisor` (as perguntas: legenda × Whisper,
+  pré-processar, visual, apagar `.wav`) e o `Progresso` (mensagens, avisos,
+  andamento). Erro fatal: `ErroPipeline`; falha só no visual volta em
+  `Saida.erro_visual` com o texto já salvo.
+- `cli.py`: casca fina. Traduz argumentos em `Opcoes` e implementa o
+  `DecisorTerminal` e o `ProgressoTerminal`. `vatty <url-arquivo-ou-pasta-de-gravacao>`
+  produz a pasta do vídeo; `vatty gravar` grava (e com `--transcrever` já
+  transcreve). Depois de transcrever uma gravação, pergunta se apaga os `.wav`
+  (padrão: guardar).
 
 ### Camada de agentes (`.claude/agents/`)
 
@@ -235,7 +257,9 @@ compara dois vídeos). Não criar agente novo sem necessidade real.
 
 ## Princípios
 
-- **Lógica pura separada da casca.** `cli.py` só traduz argumentos e imprime.
+- **Lógica pura separada da casca.** O fluxo mora em `aplicacao/`; `cli.py` só
+  traduz argumentos, imprime e pergunta. Casca nova (API, desktop) implementa o
+  `Decisor` e o `Progresso`, nunca copia o fluxo.
 - **Testes com dublês.** `unittest`, sem rede, sem modelo, sem ffmpeg, sem
   Tesseract, sem yt-dlp reais. Dependências externas entram como parâmetro para o teste trocar.
 - **Nenhum modelo nem mídia no repositório.** Pesos ficam no cache do Hugging

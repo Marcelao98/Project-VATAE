@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest import mock
 
 from vatty.ui import gravador as g
 from vatty.ui import pedidos
@@ -89,6 +90,27 @@ class TestGravador(unittest.TestCase):
         r = self.grav.resumo()
         self.assertEqual((r["estado"], r["pasta"], r["trabalho"]), (g.PRONTO, "gravacoes/2026-10-28_10-00", None))
         self.assertEqual(self.fila.adicionados, [])
+
+    def test_juntar_antes_da_fila_e_falha_so_avisa(self):
+        juntados = []
+        self.grav._juntar = lambda pasta: juntados.append(pasta) or Path(pasta) / "video.mp4"
+        self.grav.iniciar({"tela": True, "opcoes": {"juntar": True}})
+        self.proc.escrever("Gravado: 0:10 em g/2026-10-31_13-43\n", fechar=True)
+        self.grav._thread.join(5)
+        r = self.grav.resumo()
+        self.assertEqual((juntados, r["juntado"]), (["g/2026-10-31_13-43"], str(Path("g/2026-10-31_13-43/video.mp4"))))
+        self.assertEqual(len(self.fila.adicionados), 1)
+
+        self.proc.stdout.close()
+        self.proc = ProcFalso()
+        self.grav._popen = self.proc
+        self.grav._juntar = mock.Mock(side_effect=RuntimeError("ffmpeg sumiu"))
+        self.grav.iniciar({"opcoes": {"juntar": True, "so_gravar": True}})
+        self.proc.escrever("Gravado: 0:10 em g/x\n", fechar=True)
+        self.grav._thread.join(5)
+        r = self.grav.resumo()
+        self.assertEqual((r["estado"], r["juntado"]), (g.PRONTO, None))
+        self.assertIn("Aviso: não consegui juntar num arquivo só (ffmpeg sumiu).", r["log"])
 
     def test_erro_da_cli_aparece_e_nada_vai_para_a_fila(self):
         self.proc.codigo = 1

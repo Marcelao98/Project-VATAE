@@ -14,6 +14,7 @@ import tempfile
 import threading
 from pathlib import Path
 
+from .. import juntar as _juntar
 from . import runner
 
 PARADO, GRAVANDO, PARANDO, PRONTO, ERRO = "parado", "gravando", "parando", "pronto", "erro"
@@ -48,10 +49,11 @@ def ler_linha(linha: str) -> dict | None:
 
 
 class Gravador:
-    def __init__(self, gravacoes, fila, popen=subprocess.Popen, pasta_temporaria=None):
+    def __init__(self, gravacoes, fila, popen=subprocess.Popen, pasta_temporaria=None, juntar=_juntar.juntar):
         self.gravacoes = Path(gravacoes)
         self.fila = fila
         self._popen = popen
+        self._juntar = juntar
         self._tmp = Path(pasta_temporaria or tempfile.gettempdir())
         self._trava = threading.Lock()
         self._estado = {"estado": PARADO}
@@ -72,7 +74,7 @@ class Gravador:
             self._parar_com.unlink(missing_ok=True)
             argv = montar_argv(pedido, self.gravacoes, self._parar_com)
             self._estado = {"estado": GRAVANDO, "tela": tela, "decorrido": 0, "niveis": {}, "log": [],
-                            "pasta": None, "erro": None, "trabalho": None}
+                            "pasta": None, "erro": None, "trabalho": None, "juntado": None}
             proc = self._popen(argv, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                env=runner.ambiente())
         self._thread = threading.Thread(target=self._acompanhar, args=(proc, opcoes), daemon=True)
@@ -109,9 +111,22 @@ class Gravador:
                 self._estado.update(estado=ERRO, erro=ultimo_erro or f"A gravação terminou com código {codigo}.")
                 return
             self._estado.update(pasta=pasta)
+        if opcoes.get("juntar"):  # antes da transcrição: ela pode apagar o tela.mp4
+            self._juntar_tudo(pasta)
+        with self._trava:
             if opcoes.get("so_gravar"):  # a pessoa transcreve depois, pela biblioteca ou pela CLI
                 self._estado.update(estado=PRONTO, trabalho=None)
                 return
         trabalho = self.fila.adicionar(pasta, opcoes)  # fora da trava: a fila avisa quem escuta
         with self._trava:
             self._estado.update(estado=PRONTO, trabalho=trabalho.id)
+
+    def _juntar_tudo(self, pasta: str) -> None:
+        """Tela, som do PC e microfone num arquivo só. Se falhar, só avisa: a gravação continua inteira."""
+        try:
+            arquivo = str(self._juntar(pasta))
+            linha = f"Pronto para enviar: {arquivo}"
+        except Exception as e:
+            arquivo, linha = None, f"Aviso: não consegui juntar num arquivo só ({e})."
+        with self._trava:
+            self._estado.update(juntado=arquivo, log=(self._estado["log"] + [linha])[-LOG_MAX:])

@@ -942,6 +942,9 @@ def main(argv=None) -> int:
     if argv and argv[0] == "verificar":
         from . import verificar
         return verificar.main(argv[1:])
+    if argv and argv[0] == "juntar":
+        from . import juntar
+        return juntar.main(argv[1:])
     if argv and argv[0] == "buscar":
         from . import buscar
         return buscar.main(argv[1:])

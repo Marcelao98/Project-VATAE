@@ -32,7 +32,7 @@ Rode e anote o que falta:
 | ffmpeg | `ffmpeg -version` (no Fedora, se a primeira linha disser `ffmpeg-free` ou faltar `x11grab`/`pulse` em `ffmpeg -devices`, trocar pelo do RPM Fusion) | sim |
 | Deno ou Node | `deno --version` ou `node --version` (Node 20 ou mais) | para YouTube |
 | Tesseract + português | `tesseract --list-langs` (precisa de `por`) | para ler a tela |
-| GStreamer (só Linux Wayland) | `gst-inspect-1.0 pipewiresrc` e `gst-inspect-1.0 openh264enc` (ou `x264enc`) e `gst-inspect-1.0 h264parse` | para gravar a tela |
+| GStreamer (só Linux Wayland) | `gst-inspect-1.0 pipewiresrc` e `gst-launch-1.0 -q videotestsrc num-buffers=1 ! openh264enc ! fakesink` (ou `x264enc`) e `gst-inspect-1.0 h264parse` | para gravar a tela |
 | PipeWire (só Linux) | `pactl info` (a linha "Server Name" diz PipeWire) | para gravar o som |
 | Claude Code | `claude --version` | para os agentes |
 
@@ -43,7 +43,7 @@ Rode e anote o que falta:
 1. RPM Fusion e o ffmpeg completo, se o ffmpeg faltar ou for o `ffmpeg-free`:
    `sudo dnf install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm`
    e depois `sudo dnf swap ffmpeg-free ffmpeg --allowerasing`
-2. O resto, só os que faltam: `sudo dnf install git python3 nodejs tesseract tesseract-langpack-por gstreamer1-plugins-good gstreamer1-plugins-bad-free pipewire-gstreamer gstreamer1-plugin-openh264`
+2. O resto, só os que faltam: `sudo dnf install git python3 nodejs tesseract tesseract-langpack-por gstreamer1-plugins-good gstreamer1-plugins-bad-free pipewire-gstreamer gstreamer1-plugin-openh264` e depois `sudo dnf swap noopenh264 openh264 --enablerepo=fedora-cisco-openh264` (o `noopenh264` é só uma casca: o `openh264enc` existe e falha ao gravar)
 
 **Ubuntu/Debian:** `sudo apt install git ffmpeg nodejs tesseract-ocr tesseract-ocr-por gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-pipewire gstreamer1.0-plugins-ugly`. Python 3.14 pelo PPA `deadsnakes` se faltar.
 

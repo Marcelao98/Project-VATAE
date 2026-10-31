@@ -109,6 +109,9 @@ class Gravador:
                 self._estado.update(estado=ERRO, erro=ultimo_erro or f"A gravação terminou com código {codigo}.")
                 return
             self._estado.update(pasta=pasta)
+            if opcoes.get("so_gravar"):  # a pessoa transcreve depois, pela biblioteca ou pela CLI
+                self._estado.update(estado=PRONTO, trabalho=None)
+                return
         trabalho = self.fila.adicionar(pasta, opcoes)  # fora da trava: a fila avisa quem escuta
         with self._trava:
             self._estado.update(estado=PRONTO, trabalho=trabalho.id)

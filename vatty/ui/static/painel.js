@@ -63,6 +63,8 @@ function escolherFonte(fonte) {
   document.querySelectorAll(".fonte").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.fonte === fonte)));
   document.querySelectorAll("[data-detalhe]").forEach((d) => (d.hidden = !d.dataset.detalhe.split(" ").includes(fonte)));
   $("p-comecar").textContent = fonte === "youtube" ? "Puxar e transcrever" : "Começar a gravar";
+  $("l-so-gravar").hidden = fonte === "youtube";  // do YouTube não tem o que só gravar
+  if (fonte === "youtube" && depois() === "gravar") document.querySelector("input[name=depois][value=guardar]").checked = true;
   atualizarResumo();
   desenharDeck();
 }
@@ -87,7 +89,7 @@ function atualizarResumo() {
   $("p-slides-dica").textContent = semTela ? "Só com tela: escolha \"Gravar tela e áudio\" ou \"Puxar do YouTube\"."
     : "Cada tela no momento em que apareceu, com o que foi dito. Sai um slides.html (e PDF).";
   if ($("p-slides").checked && !semTela) linhas.push(["Slides", "sim, com os prints"]);
-  linhas.push(["Depois", comAgentes ? (nomes.join(", ") || "escolha os agentes") : "só guardar"]);
+  linhas.push(["Depois", comAgentes ? (nomes.join(", ") || "escolha os agentes") : depois() === "gravar" ? "só gravar" : "só guardar"]);
   linhas.push(["Onde fica", "transcricoes/"]);
   $("resumo-pedido").replaceChildren(...linhas.map(([k, v]) => el("div", {}, el("dt", {}, k), el("dd", {}, v))));
   const aviso = painel.fonte === "tela" ? "A tela pode mostrar senha e conversa de outras pessoas: feche o que não deve aparecer. Fica só no seu PC."
@@ -98,6 +100,8 @@ function atualizarResumo() {
 function opcoesTranscricao() {
   const o = { falantes: $("p-falantes").value, lang: $("p-lang").value };
   if ($("p-slides").checked && !$("p-slides").disabled) o.slides = true;
+  if (depois() === "gravar") o.so_gravar = true;
+  if (painel.fonte === "tela" && $("p-manter-tela").checked) o.manter_tela = true;
   if (depois() === "agentes") { o.agentes = agentesMarcados(); o.objetivo = $("p-objetivo").value.trim(); }
   return o;
 }
@@ -166,7 +170,7 @@ function mostrarGravacao(r) {
   } else if (r.estado === "pronto") {
     clearInterval(painel.vigia);
     if (r.trabalho && !painel.trabalhos.includes(r.trabalho)) painel.trabalhos = [r.trabalho];
-    falar("escrevendo");
+    if (r.trabalho) falar("escrevendo");
   } else if (r.estado === "erro") {
     clearInterval(painel.vigia);
     falar("erro");
@@ -194,7 +198,8 @@ function desenharDeck() {
         el("div", { class: "bola", "aria-hidden": "true" }, "REC"),
         el("div", {}, el("div", { class: "tempo" }, relogio(g.decorrido)),
           el("div", { class: "estado-rec", role: "status" }, g.estado === "parando" ? "Parando e guardando..." : "Gravando" + (g.tela ? " som e tela" : ""))),
-        el("button", { class: "btn btn-principal", onclick: pararGravacao, disabled: g.estado === "parando" }, "Parar e transcrever")),
+        el("button", { class: "btn btn-principal", onclick: pararGravacao, disabled: g.estado === "parando" },
+          painel.opcoes && painel.opcoes.so_gravar ? "Parar e guardar" : "Parar e transcrever")),
       el("div", { class: "faixas" }, ...(niveis.length ? niveis : [["sistema", 0]]).map(([nome, n]) => {
         const [titulo, quem] = rotulo[nome] || [nome, ""];
         return el("div", { class: "faixa" }, el("span", {}, titulo),
@@ -209,6 +214,11 @@ function desenharDeck() {
     deck.replaceChildren(el("p", { class: "marca", role: "alert" }, g.erro || "A gravação falhou."),
       el("div", { class: "log" }, ...(g.log || []).slice(-4).map((l) => el("div", {}, l))),
       el("button", { class: "btn btn-calmo", onclick: novoPedido }, "Tentar de novo"));
+    return;
+  }
+  if (g && g.estado === "pronto" && !g.trabalho && fase !== "escolher") {
+    deck.replaceChildren(el("h3", {}, "Gravado"), el("p", {}, "Ficou em " + g.pasta + ", sem transcrever."),
+      el("button", { class: "btn btn-calmo", onclick: novoPedido }, "Gravar outra"));
     return;
   }
   if (painel.trabalhos.length && fase !== "escolher") {

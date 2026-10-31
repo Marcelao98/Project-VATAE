@@ -42,6 +42,8 @@ class TestMontarArgv(unittest.TestCase):
         for par in (["--texto", "legenda"], ["--falantes", "3"], ["--lang", "en"], ["--preprocessar", "nao"]):
             i = argv.index(par[0])
             self.assertEqual(argv[i + 1], par[1])
+        self.assertNotIn("--manter-tela", argv)
+        self.assertIn("--manter-tela", runner.montar_argv("https://youtu.be/x", {"manter_tela": True}, "t"))
 
     def test_opcao_invalida_vira_padrao_e_nao_passa(self):
         with tempfile.NamedTemporaryFile() as arq:

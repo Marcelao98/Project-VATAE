@@ -71,6 +71,9 @@ na sua conta.
        gstreamer1-plugins-good gstreamer1-plugins-bad-free pipewire-gstreamer gstreamer1-plugin-openh264
    ```
 
+   Para gravar a tela, troque também a OpenH264 "casca" do Fedora pela de verdade:
+   `sudo dnf swap noopenh264 openh264 --enablerepo=fedora-cisco-openh264`
+
    O `nodejs` serve para o YouTube (o Deno também serve: `curl -fsSL https://deno.land/install.sh | sh`).
    Os pacotes `gstreamer1-*` e `pipewire-gstreamer` só são usados para gravar a tela.
 

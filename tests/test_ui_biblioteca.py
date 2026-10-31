@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -32,7 +33,9 @@ class TestListarELer(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             criar(d, "velha")
             criar(d, "nova")
-            (Path(d) / "velha" / "transcricao.json").touch()  # mexe no horário: a "velha" agora é a mais nova
+            # mexe no horário: a "velha" agora é a mais nova (horário explícito, o do Windows pode empatar)
+            depois = (Path(d) / "nova" / "transcricao.json").stat().st_mtime + 10
+            os.utime(Path(d) / "velha" / "transcricao.json", (depois, depois))
             (Path(d) / "lixo").mkdir()  # pasta sem transcrição não aparece
             lista = b.listar(d)
             self.assertEqual([v["slug"] for v in lista], ["velha", "nova"])

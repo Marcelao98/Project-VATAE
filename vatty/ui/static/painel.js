@@ -101,7 +101,7 @@ function opcoesTranscricao() {
   const o = { falantes: $("p-falantes").value, lang: $("p-lang").value };
   if ($("p-slides").checked && !$("p-slides").disabled) o.slides = true;
   if (depois() === "gravar") o.so_gravar = true;
-  if (painel.fonte === "tela" && $("p-manter-tela").checked) o.manter_tela = true;
+  if (painel.fonte === "tela") o.manter_tela = $("p-manter-tela").checked;
   if (painel.fonte !== "youtube" && $("p-juntar").checked) o.juntar = true;
   if (depois() === "agentes") { o.agentes = agentesMarcados(); o.objetivo = $("p-objetivo").value.trim(); }
   return o;

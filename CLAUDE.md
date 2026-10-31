@@ -187,6 +187,7 @@ vatty lote lista.txt
 vatty buscar "termo"
 vatty corrigir transcricoes/aula --glossario glossario.txt
 vatty legenda transcricoes/aula --formato srt vtt
+vatty juntar gravacoes/2026-10-31_13-43
 vatty slides transcricoes/aula --formato html pdf
 vatty ata transcricoes/reuniao --nomes "Pessoa 1=Ana" --formato docx pdf
 ```

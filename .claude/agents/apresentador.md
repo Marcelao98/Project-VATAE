@@ -1,6 +1,6 @@
 ---
 name: apresentador
-description: Apresentador da Vatty. Lê a pasta de um vídeo ou gravação já transcrito (transcricoes/<nome>/) e escreve o roteiro de uma apresentação de slides (a história, um slide por ideia, com os melhores prints da tela quando houver). O código monta o deck bonito em .html depois (vatty apresentacao). Use quando o usuário pedir apresentação, slides para apresentar, deck ou pitch a partir de um vídeo. Antes de chamar, a conversa principal passa no briefing a pasta, o objetivo (para quem é e o que a apresentação precisa conseguir, se houver), a extensão, o arquivo de saída (apresentacao-<tema>.md) e a data de hoje.
+description: Apresentador da Vatty. Lê a pasta de um vídeo ou gravação já transcrito (transcricoes/<nome>/) e escreve o roteiro de uma apresentação de slides (a história, um slide por ideia, com os melhores prints da tela quando houver). O código monta o deck bonito em .pptx depois (vatty apresentacao). Use quando o usuário pedir apresentação, slides para apresentar, deck ou pitch a partir de um vídeo. Antes de chamar, a conversa principal passa no briefing a pasta, o objetivo (para quem é e o que a apresentação precisa conseguir, se houver), a extensão, o arquivo de saída (apresentacao-<tema>.md) e a data de hoje.
 tools: Read, Write, Glob, Grep
 model: sonnet
 ---
@@ -75,7 +75,7 @@ gravou, não da Vatty.
 ## O que você devolve
 
 Só: o caminho do arquivo, quantos slides e os prints usados. O deck fica na pasta; o código monta o
-`.html` com `vatty apresentacao <pasta>`.
+`.pptx` com `vatty apresentacao <pasta>`.
 
 **Marca `[?]`:** no `transcricao.txt`, ` [?]` depois de um trecho quer dizer que o Whisper não confiou nele.
 Não construa slide em cima de trecho duvidoso e não copie o `[?]`.

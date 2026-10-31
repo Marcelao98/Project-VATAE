@@ -195,8 +195,11 @@ def _montar_apresentacoes(pasta, ctx) -> None:
     from .. import apresentacao
     if not any(Path(pasta).glob("apresentacao-*.md")):
         return
+    formatos = ("pptx",) if importlib.util.find_spec("pptx") else ("html",)
+    if formatos == ("html",):
+        ctx.log('Aviso: sem o python-pptx a apresentação sai em .html (pip install -e ".[apresentacao]" para .pptx).')
     try:
-        for arquivo in apresentacao.montar(pasta):
+        for arquivo in apresentacao.montar(pasta, formatos=formatos):
             ctx.log(f"Apresentação pronta: {arquivo}")
     except (apresentacao.ErroApresentacao, OSError) as e:
         ctx.log(f"Aviso: sem apresentação: {e}")

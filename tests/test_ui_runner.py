@@ -148,7 +148,7 @@ class TestExecutar(unittest.TestCase):
             t = fila.adicionar(pasta, {"agentes": ["apresentador"]}, f.AGENTES)
             fila.processar_um(f.AGENTES)
             self.assertEqual(t.estado, f.PRONTO)
-            self.assertTrue((Path(pasta) / "apresentacao-x.html").is_file())
+            self.assertEqual(len(list(Path(pasta).glob("apresentacao-x.pptx")) + list(Path(pasta).glob("apresentacao-x.html"))), 1)
 
     def test_cancelar_derruba_o_processo(self):
         t, proc = rodar(b"Transcrevendo...\nmais uma\n", cancelar_antes=True)

@@ -1,6 +1,7 @@
 """
 `vatty apresentacao <pasta>`: transforma o `apresentacao-<tema>.md` que o Apresentador escreveu num deck de slides
-(`apresentacao-<tema>.html`), bonito, num arquivo só (prints e arte embutidos) e que funciona offline.
+bonito: `apresentacao-<tema>.pptx` (padrão, ver `apresentacao_pptx.py`) e, se pedido, `.html` num arquivo só
+(prints e arte embutidos) que funciona offline.
 
 O agente decide o que vai em cada slide; aqui só se lê o formato fixo e se desenha. Navegação: setas, espaço,
 clique, deslizar o dedo; F tela cheia; N notas de quem apresenta. Para PDF: imprimir no navegador (um slide por
@@ -203,8 +204,8 @@ def para_html(deck: dict, pasta, fonte: dict | None = None, resolucao=PRINT_PADR
             f'<div class="progresso" aria-hidden="true"><i></i></div><script>{JS}</script></body></html>')
 
 
-def montar(pasta, arquivo=None, ler_json=lambda p: json.loads(p.read_text(encoding="utf-8"))) -> list:
-    """Gera o .html de cada apresentacao-*.md da pasta (ou só do `arquivo`). Devolve os caminhos."""
+def montar(pasta, arquivo=None, formatos=("pptx",), ler_json=lambda p: json.loads(p.read_text(encoding="utf-8"))) -> list:
+    """Gera o .pptx (e/ou .html) de cada apresentacao-*.md da pasta (ou só do `arquivo`). Devolve os caminhos."""
     pasta = Path(pasta)
     fontes = [pasta / arquivo] if arquivo else sorted(pasta.glob("apresentacao-*.md"))
     if not fontes or not all(f.is_file() for f in fontes):
@@ -220,9 +221,14 @@ def montar(pasta, arquivo=None, ler_json=lambda p: json.loads(p.read_text(encodi
         pass
     feitos = []
     for md in fontes:
-        destino = md.with_suffix(".html")
-        destino.write_text(para_html(ler(md.read_text(encoding="utf-8")), pasta, fonte, resolucao), encoding="utf-8")
-        feitos.append(destino)
+        deck = ler(md.read_text(encoding="utf-8"))
+        if "pptx" in formatos:
+            from . import apresentacao_pptx
+            feitos.append(apresentacao_pptx.para_pptx(deck, pasta, md.with_suffix(".pptx"), fonte))
+        if "html" in formatos:
+            destino = md.with_suffix(".html")
+            destino.write_text(para_html(deck, pasta, fonte, resolucao), encoding="utf-8")
+            feitos.append(destino)
     return feitos
 
 
@@ -230,12 +236,14 @@ def main(argv=None) -> int:
     import argparse
     import sys
     p = argparse.ArgumentParser(prog="vatty apresentacao",
-                                description="Monta o deck de slides (.html) a partir do apresentacao-*.md do Apresentador.")
+                                description="Monta o deck de slides (.pptx ou .html) a partir do apresentacao-*.md do Apresentador.")
     p.add_argument("pasta", type=Path, help="a pasta do vídeo (transcricoes/<nome>)")
     p.add_argument("--arquivo", help="só este .md (padrão: todos os apresentacao-*.md da pasta)")
+    p.add_argument("--formato", nargs="+", choices=("pptx", "html"), default=["pptx"],
+                   help="pptx (PowerPoint, padrão) e/ou html (abre no navegador, offline)")
     args = p.parse_args(argv)
     try:
-        feitos = montar(args.pasta, args.arquivo)
+        feitos = montar(args.pasta, args.arquivo, tuple(args.formato))
     except ErroApresentacao as e:
         print(f"Erro: {e}", file=sys.stderr)
         return 1

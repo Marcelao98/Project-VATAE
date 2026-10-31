@@ -294,7 +294,8 @@ compara dois vídeos). Não criar agente novo sem necessidade real.
   Sem código novo: o Perito só lê o que a gravação já produz.
 - **Apresentador** (`apresentador.md`): roteiro de uma apresentação (`apresentacao-<tema>.md`, formato fixo: um
   `## ` por slide, `tipo:`, itens curtos, `print:` com `recorte:` em %, `horario:`, `notas:`). O código
-  (`vatty/apresentacao.py`, `vatty apresentacao <pasta>`) desenha o deck `.html` num arquivo só, com prints e arte
-  embutidos, setas/clique/toque, F tela cheia, N notas, e imprime um slide por página. O painel monta o deck sozinho
+  (`vatty apresentacao <pasta>`) desenha o `.pptx` (`apresentacao_pptx.py`, python-pptx: fundo, prints em janela e
+  arte desenhados com o Pillow, Calibri/Consolas, notas do apresentador) e, com `--formato html`
+  (`apresentacao.py`), um deck num arquivo só que abre no navegador. O painel monta o deck sozinho
   depois que a pista dos agentes termina.
   Agente novo só aparece depois de reiniciar a sessão do Claude Code.

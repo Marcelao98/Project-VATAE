@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.18.1 — 2026-10-31
+
+- **`vatty verificar`**: confere cada peça neste computador (as do painel e mais as do sistema: Tesseract em
+  português, `pactl`, GStreamer, portal e um codificador de vídeo que grava de verdade no Wayland) e diz o
+  comando para o que falta. Com `--instalar`, instala sozinho o que é do Python e mostra o comando do sistema
+  (`sudo dnf`/`apt`, `winget`) num lugar só, rodando só depois da confirmação. O `abrir-vatty.sh` usa a versão
+  `--curto` no lugar da lista que tinha.
+- 570 testes. **Verificado de verdade**: `vatty verificar` no Fedora 44 (Wayland), tudo ok.
+
 ## 0.18.0 — 2026-10-24
 
 A Vatty no Linux (Fedora) e um guia de instalação que qualquer um replica.

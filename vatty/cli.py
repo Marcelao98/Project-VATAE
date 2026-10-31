@@ -939,6 +939,9 @@ def main(argv=None) -> int:
         return _main_slides(argv[1:])
     if argv and argv[0] == "legenda":
         return _main_legenda(argv[1:])
+    if argv and argv[0] == "verificar":
+        from . import verificar
+        return verificar.main(argv[1:])
     if argv and argv[0] == "buscar":
         from . import buscar
         return buscar.main(argv[1:])

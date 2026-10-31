@@ -20,15 +20,7 @@ echo "Conferindo as peças da Vatty..."
 # O YouTube muda toda hora: yt-dlp velho é a causa número 1 de bloqueio. Sem internet, segue assim mesmo.
 .venv/bin/python -m pip install -q --disable-pip-version-check -U "yt-dlp[default,curl-cffi]" >/dev/null 2>&1
 
-faltam=()
-command -v ffmpeg >/dev/null || faltam+=("ffmpeg (Fedora: RPM Fusion + sudo dnf install ffmpeg)")
-command -v deno >/dev/null || command -v node >/dev/null || faltam+=("deno, para o YouTube (curl -fsSL https://deno.land/install.sh | sh)")
-command -v tesseract >/dev/null || faltam+=("tesseract, só para ler a tela (sudo dnf install tesseract tesseract-langpack-por)")
-if [ "${XDG_SESSION_TYPE:-}" != "x11" ]; then
-  command -v gst-launch-1.0 >/dev/null || faltam+=("GStreamer, só para gravar a tela no Wayland (sudo dnf install gstreamer1-plugins-good pipewire-gstreamer gstreamer1-plugin-openh264)")
-fi
-if [ ${#faltam[@]} -gt 0 ]; then
-  echo; echo "Aviso, falta instalar:"; printf '  - %s\n' "${faltam[@]}"; echo
-fi
+# O que falta (ffmpeg, Deno, Tesseract, GStreamer...): só avisa. `vatty verificar --instalar` instala.
+.venv/bin/python -m vatty.cli verificar --curto && echo
 
 exec .venv/bin/python -m vatty.cli ui

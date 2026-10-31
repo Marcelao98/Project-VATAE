@@ -174,6 +174,7 @@ Regra: **testar comportamento, não linhas.** Pouco teste bom vale mais que muit
 
 ```bash
 python -m unittest discover -s tests
+vatty verificar --instalar
 vatty arquivo.opus
 vatty gravar --mic --transcrever
 vatty gravar --mic --tela --transcrever

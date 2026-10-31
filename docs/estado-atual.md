@@ -10,7 +10,7 @@ Arquivo de passagem de bastão: o que foi feito, o que falta e por onde continua
   `linux` (que já continha `ui-*`, `painel`, `captura-tela`, `agente-perito`, `diarizacao`, `lote`,
   `busca`, `glossario`, `srt`, `duvidosos`, `agentes-novos`...) + `perfil-app` + `secretario` +
   `vatty-evolucao` + o commit local "Added a Linux version".
-- Versão **0.18.0**. **559 testes, todos verdes** (conferido na nuvem em 31/10, Python 3.13).
+- Versão **0.18.1**. **570 testes, todos verdes** (conferido no Fedora 44 em 31/10, Python 3.14, `.venv`).
 - Os branches antigos já estão dentro do `main` e podem ser apagados (ver seção 4).
 
 **Regra daqui pra frente:** cada trabalho num branch curto → PR para o `main` → merge → apaga o
@@ -35,6 +35,9 @@ Itens 1 a 14 do roteiro do `CLAUDE.md` estão **feitos em código e testados com
 O roteiro de teste do Fedora já está escrito em `docs/testes-reais.md`, seção
 "A fazer: Vatty no Fedora (0.18.0)". **É a prioridade número 1**: sem isso, cada parte nova é construída
 em cima de algo que ninguém viu funcionar.
+
+**Andamento no Fedora (31/10):** item 0 (instalar) **ok**, anotado em `docs/testes-reais.md`. De quebra veio o
+`vatty verificar [--instalar]` (confere tudo e instala o que falta). Próximo: item 1 (som).
 
 ## 3. Engenharia: como fazer a Vatty crescer (web, desktop, app)
 

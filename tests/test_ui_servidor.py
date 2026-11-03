@@ -245,6 +245,16 @@ class TestAgentesNumVideoPronto(Base):
         pedido = json.loads((self.raiz / "aula" / "pedidos.json").read_text(encoding="utf-8"))[0]
         self.assertEqual((pedido["agente"], pedido["objetivo"], pedido["estado"]), ("apresentador", "diretoria", "pendente"))
 
+    def test_formatos_escolhidos_vao_junto_e_remontar_nao_chama_o_agente(self):
+        self._video()
+        r = json.loads(self.chamar("/api/video/aula/agentes", {"agentes": ["apresentador"], "formatos": ["pdf", "zzz", "pdf", "html"]})[1])
+        self.assertEqual(self.fila.trabalho(r["trabalho"]["id"]).opcoes["formatos"], ["pdf", "html"])
+        feito = self.raiz / "aula" / "apresentacao-x.pdf"
+        with mock.patch("vatty.apresentacao.montar", return_value=[feito]) as montar:
+            codigo, corpo = self.chamar("/api/video/aula/apresentacao", {"formatos": ["pdf"]})
+        self.assertEqual((codigo, json.loads(corpo)["gerados"]), (200, ["apresentacao-x.pdf"]))
+        self.assertEqual(montar.call_args.kwargs["formatos"], ("pdf",))
+
     def test_agente_desconhecido_e_400_e_video_que_nao_existe_e_404(self):
         self._video()
         self.assertEqual(self.chamar("/api/video/aula/agentes", {"agentes": ["zzz"]})[0], 400)

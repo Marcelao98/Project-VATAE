@@ -240,23 +240,43 @@ function desenharLeitor() {
   $("leitor").replaceChildren(topo, apresentador(v), ferramentas(v), duvidosos ? filtro : el("span"), el("div", { class: "paragrafos", id: "paragrafos" }));
   desenharParagrafos();
 }
-function apresentador(v) {  // o agente Apresentador num vídeo já transcrito: roteiro -> .pptx, pela pista dos agentes
-  const pronto = v.gerados.some((g) => /^apresentacao-.*\.(pptx|html)$/.test(g));
+const FORMATOS_APRESENTACAO = [["pptx", "PowerPoint (.pptx)"], ["pdf", "PDF"], ["html", "Página (.html)"]];
+function apresentador(v) {  // o agente Apresentador num vídeo já transcrito: roteiro -> deck, pela pista dos agentes
+  const roteiro = v.gerados.some((g) => /^apresentacao-.*\.md$/.test(g));
   const objetivo = el("input", { maxlength: "300", placeholder: "Pra quem é e o que precisa conseguir (opcional)", "aria-label": "Objetivo da apresentação" });
+  const caixas = FORMATOS_APRESENTACAO.map(([id, nome]) => {
+    const c = el("input", { type: "checkbox", value: id, id: "fmt-" + id });
+    c.checked = id === "pptx";
+    return [c, el("label", { class: "marcar" }, c, " " + nome)];
+  });
+  const formatos = () => caixas.filter(([c]) => c.checked).map(([c]) => c.value);
   const status = el("span", { role: "status", class: "dica" });
   const botao = el("button", { class: "btn btn-principal", onclick: async () => {
+    if (!formatos().length) { status.textContent = "Marque pelo menos um formato."; return; }
     botao.disabled = true;
     try {
-      const r = await post("video/" + encodeURIComponent(v.slug) + "/agentes", { agentes: ["apresentador"], objetivo: objetivo.value.trim() });
+      const r = await post("video/" + encodeURIComponent(v.slug) + "/agentes", { agentes: ["apresentador"], objetivo: objetivo.value.trim(), formatos: formatos() });
       status.textContent = r.claude
-        ? "Pedido feito. O Apresentador está na fila dos agentes; o .pptx aparece aqui nos arquivos quando ficar pronto (veja o andamento em Fila)."
+        ? "Pedido feito. O Apresentador está na fila dos agentes; a apresentação aparece aqui nos arquivos quando ficar pronta (veja o andamento em Fila)."
         : "Pedido anotado na pasta, mas o Claude Code não está neste PC. Instale e diga \"faz os pedidos da Vatty\".";
     } catch (e) { status.textContent = e.message; botao.disabled = false; }
-  } }, pronto ? "Chamar o Apresentador de novo" : "Chamar o Apresentador");
+  } }, roteiro ? "Chamar o Apresentador de novo" : "Chamar o Apresentador");
+  const remontar = roteiro ? el("button", { class: "btn btn-calmo", onclick: async () => {
+    if (!formatos().length) { status.textContent = "Marque pelo menos um formato."; return; }
+    remontar.disabled = true;
+    remontar.textContent = "Montando...";
+    try {
+      const r = await post("video/" + encodeURIComponent(v.slug) + "/apresentacao", { formatos: formatos() });
+      status.textContent = "Pronto: " + r.gerados.join(", ") + (r.avisos.length ? ". " + r.avisos.join(" ") : "");
+      await abrirVideo(v.slug);
+    } catch (e) { status.textContent = e.message; remontar.disabled = false; remontar.textContent = "Montar de novo nestes formatos"; }
+  } }, "Montar de novo nestes formatos") : null;
   return el("div", { class: "ferramenta apresentador" },
     el("h3", {}, "Apresentador: apresentação de slides"),
-    el("p", { class: "dica" }, "Lê a transcrição e escreve a história, um slide por ideia, com os melhores prints da tela. Sai um PowerPoint (.pptx)."),
-    objetivo, el("div", { class: "linha-btn" }, botao, status));
+    el("p", { class: "dica" }, "Lê a transcrição, segue o que você pediu na gravação e escreve a história, um slide por ideia, com os melhores prints da tela, nas cores do assunto."),
+    objetivo,
+    el("div", { class: "linha-btn", role: "group", "aria-label": "Formatos da apresentação" }, ...caixas.map(([, l]) => l)),
+    el("div", { class: "linha-btn" }, botao, remontar, status));
 }
 async function gerarSlides(slug, botao) {  // um slide por tela, com o print e o que foi dito
   botao.disabled = true;

@@ -70,9 +70,13 @@ essas linhas; elas servem para a pessoa conferir.
   (`capa: frames/0003.jpg 30 15 40 45`). Se o briefing trouxer o caminho de uma arte do projeto, use esse. Procure
   essa imagem com cuidado: é a primeira coisa que a pessoa vê. Nunca `capa: vatty` se o vídeo não é sobre a Vatty;
   sem imagem boa, deixe sem `capa:`.
-- `cores:` as cores do assunto, tiradas dos prints (o fundo, o texto e a cor de destaque do app), em hex:
-  `cores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62`. App claro dá deck claro. Sem identidade clara, deixe
-  sem `cores:` (o deck sai escuro).
+- `cores:` as cores do assunto, em hex: `cores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62 destaque2 #f2b48c`.
+  Prefira a identidade do personagem ou da marca (o mascote, o logo, o tema que a pessoa citou: "os temas do
+  Frederico") às cores de fundo de um print; `destaque2` é uma segunda cor da mesma identidade (a crista, o
+  detalhe). Fundo claro dá deck claro. Sem identidade clara, deixe sem `cores:` (sai nas cores da Vatty).
+- `olho:` uma etiqueta curta acima do título da capa ("Projeto pessoal · RPG de mesa").
+- Linhas `- item` antes do primeiro `## ` viram as etiquetas da capa: 2 a 4 números ou fatos curtos ditos no
+  vídeo ("- **607** faixas", "- pedido em português").
 
 ## Custo: leia o necessário, escreva uma vez
 
@@ -119,6 +123,8 @@ notas: o que dizer neste slide, em 1 ou 2 frases
     esconder, tire o `print:` e diga com palavras.
   - `horario:` um ou mais `[mm:ss]` de onde veio o conteúdo do slide.
   - `notas:` o que a pessoa fala enquanto mostra o slide (aparece com a tecla N).
+  - `olho:` (opcional) etiqueta curta acima do título do slide.
+  - num `fim`, `destaque:` vira o botão de convite ("Vamos conversar?").
 - **Negrito** (`**x**`) para no máximo uma palavra-chave por slide.
 
 ## Passo 3: a história
@@ -140,6 +146,9 @@ Português, frases curtas, sem travessão longo. **Nada de persona** no arquivo:
 gravou, não da Vatty.
 
 ## O que você devolve
+
+O deck sai no visual "player" (cada slide é uma faixa; referência em `exemplos/apresentacao-freddy/`), em
+PowerPoint, PDF ou página HTML, como a pessoa escolheu no painel. Você só escreve o roteiro.
 
 Só: o caminho do arquivo, quantos slides, os prints usados e a lista de pedidos falados (cumpridos e não
 cumpridos). O deck fica na pasta; o código monta o

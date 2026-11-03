@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.20.2 — 2026-11-03
+
+- **Apresentação no visual "player", em PowerPoint, PDF ou página**: o deck do Apresentador ganhou o visual do
+  exemplo do Freddy (`exemplos/apresentacao-freddy/`): cada slide é uma faixa e a barra de baixo mostra o que está
+  tocando e de que ponto do vídeo aquilo saiu; capa com a imagem do assunto em ondas de som, etiquetas, cartões,
+  passos, destaque com onda, prints em janela, botão de convite no fim. Funciona claro ou escuro, nas `cores:` do
+  assunto (`destaque2` novo), com `olho:` e etiquetas da capa (`- item` antes do primeiro slide).
+  `vatty apresentacao --formato pptx pdf html` (e `pptx-editavel`, o desenho simples com texto editável): PDF e
+  PowerPoint são prints da página no Chrome/Chromium/Edge sem janela (`apresentacao_render.py`), iguais ao HTML,
+  com as notas no PowerPoint. Sem navegador, o PowerPoint sai no desenho simples (com aviso) e o PDF explica o que
+  instalar; o `vatty verificar` e a saúde do painel avisam.
+- **Painel**: no bloco do Apresentador, a pessoa marca os formatos (PowerPoint, PDF, Página); valem quando o agente
+  termina. Com roteiro pronto, "Montar de novo nestes formatos" refaz sem chamar o agente
+  (`POST /api/video/<slug>/apresentacao`). O Pronto lista também o `.pdf` e o `.html` da apresentação.
+- Exemplos guardados em `exemplos/apresentacao-freddy/` (os arquivos grandes, com prints, ficam fora do git).
+- 610 testes. **Verificado de verdade**: o roteiro do Freddy saiu em HTML, PDF e PowerPoint pelo código novo,
+  conferidos página a página.
+
 ## 0.20.1 — 2026-11-03
 
 - **Apresentador segue o que a pessoa falou e usa a cara do assunto**: antes de montar, o agente lista cada

@@ -244,14 +244,14 @@ function desenharDeck() {
 
 /* ---------- pronto ---------- */
 // O que os agentes entregaram: o arquivo final (.pptx, .docx, .pdf, .csv) no lugar do rascunho .md de mesmo nome.
-const FINAIS = [".pptx", ".docx", ".pdf", ".csv"];
+const FINAIS = [".pptx", ".docx", ".pdf", ".csv", ".html"];
 function entregas(gerados) {
   const sem = (g) => g.replace(/\.[^.]+$/, "");
   const comFinal = new Set(gerados.filter((g) => FINAIS.some((f) => g.endsWith(f))).map(sem));
   return gerados.filter((g) => g.endsWith(".md") ? !comFinal.has(sem(g)) : FINAIS.some((f) => g.endsWith(f)) && !g.startsWith("slides."));
 }
 function nomeEntrega(g) {
-  return g.endsWith(".pptx") ? "Apresentação de slides: " + g : g;
+  return /^apresentacao-.*\.(pptx|pdf|html)$/.test(g) ? "Apresentação: " + g : g;
 }
 function trabalhoDosAgentes(pasta) {  // o mais recente da pista dos agentes para esta pasta
   return [...estado.trabalhos.values()].filter((x) => x.pista === "agentes" && x.entrada === pasta)

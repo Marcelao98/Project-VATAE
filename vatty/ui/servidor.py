@@ -30,6 +30,14 @@ CORPO_JSON_MAX = 1024 * 1024
 RE_NOME = re.compile(r"[^\w.\- ]+")
 
 
+FORMATOS_PAINEL = ("pptx", "pdf", "html")
+
+
+def _formatos(valor) -> list:
+    """Os formatos de apresentação pedidos pelo painel que a Vatty conhece, sem repetir."""
+    return [f for f in dict.fromkeys(valor if isinstance(valor, list) else []) if f in FORMATOS_PAINEL]
+
+
 def nome_seguro(nome: str) -> str:
     """Nome de arquivo de upload sem pasta e sem caracteres estranhos."""
     base = RE_NOME.sub("_", Path(nome or "").name).strip(" .") or "arquivo"
@@ -245,8 +253,22 @@ class Handler(BaseHTTPRequestHandler):
                                          str(c.get("objetivo") or ""))
             if not anotados:
                 raise ValueError("Escolha um agente que a Vatty conhece.")
-            t = s.fila.adicionar(str(pasta), {"agentes": anotados}, _fila.AGENTES)
+            opcoes = {"agentes": anotados}
+            if formatos := _formatos(c.get("formatos")):
+                opcoes["formatos"] = formatos
+            t = s.fila.adicionar(str(pasta), opcoes, _fila.AGENTES)
             return self._json({"anotados": anotados, "trabalho": t.resumo(), "claude": bool(claude.achar())})
+        if metodo == "POST" and p[0] == "video" and len(p) == 3 and p[2] == "apresentacao":
+            # remonta o roteiro que já existe nos formatos escolhidos, sem chamar o agente de novo
+            from .. import apresentacao
+            pasta = biblioteca.pasta_de(s.raiz, p[1])
+            formatos = _formatos(self._corpo_json().get("formatos")) or ["pptx"]
+            avisos = []
+            try:
+                feitos = apresentacao.montar(pasta, formatos=tuple(formatos), avisar=avisos.append)
+            except apresentacao.ErroApresentacao as e:
+                raise ValueError(str(e))
+            return self._json({"gerados": [f.name for f in feitos], "avisos": avisos})
         if metodo == "POST" and p[0] == "video" and len(p) == 3 and p[2] == "nomes":
             nomes = self._corpo_json().get("nomes")
             if not isinstance(nomes, dict):

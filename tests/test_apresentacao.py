@@ -54,13 +54,14 @@ class TestHtml(unittest.TestCase):
         self.addCleanup(tmp.cleanup)
         self.pasta = Path(tmp.name)
         (self.pasta / "frames").mkdir()
-        (self.pasta / "frames" / "0001.jpg").write_bytes(b"\xff\xd8jpg")
+        from PIL import Image
+        Image.new("RGB", (64, 36), "gray").save(self.pasta / "frames" / "0001.jpg")
 
     def test_escapa_texto_embute_o_print_e_conta_os_slides(self):
         doc = a.para_html(a.ler(ROTEIRO), self.pasta, arte=None)
         self.assertNotIn("<script>alert", doc)
         self.assertIn("&lt;script&gt;", doc)
-        self.assertIn("<strong>forte</strong>", doc)
+        self.assertIn("<em>forte</em>", doc)            # **x** vira o destaque em itálico
         self.assertIn("data:image/jpeg;base64,", doc)
         self.assertEqual(doc.count('<section class="slide'), 4)   # capa + 3
 
@@ -89,7 +90,7 @@ class TestMontar(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             pasta = Path(d)
             (pasta / "apresentacao-pitch.md").write_text(ROTEIRO, encoding="utf-8")
-            feitos = a.montar(pasta)   # padrão: .pptx
+            feitos = a.montar(pasta, formatos=("pptx-editavel",))   # o desenho antigo, com texto editável
             self.assertEqual(feitos, [pasta / "apresentacao-pitch.pptx"])
             prs = Presentation(feitos[0])
             self.assertEqual(len(prs.slides), 4)
@@ -109,7 +110,7 @@ class TestMontar(unittest.TestCase):
             roteiro = ROTEIRO.replace("subtitulo: Tudo no seu PC.\n", "subtitulo: Tudo no seu PC.\nmarca: Freddy\n"
                                       "capa: frames/0003.jpg 10 10 50 50\ncores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62\n")
             (pasta / "apresentacao-freddy.md").write_text(roteiro, encoding="utf-8")
-            prs = Presentation(a.montar(pasta)[0])
+            prs = Presentation(a.montar(pasta, formatos=("pptx-editavel",))[0])
             capa = prs.slides[0].shapes
             textos = " ".join(f.text_frame.text for f in capa if f.has_text_frame)
             self.assertIn("Freddy", textos)
@@ -148,9 +149,41 @@ class TestAssunto(unittest.TestCase):
 
     def test_html_usa_a_marca_e_as_cores(self):
         doc = a.para_html(a.ler("# T\nmarca: Freddy\ncores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62\n## S\n- x"), ".")
-        self.assertIn('<span class="marca">Freddy</span>', doc)
-        self.assertNotIn(">Vatty<", doc)
-        self.assertIn("--oficina:#f5f5f7", doc)
+        self.assertIn('<div class="direita">Freddy<br>', doc)
+        self.assertNotIn("Vatty", doc)
+        self.assertIn("--fundo:#f5f5f7", doc)
+        self.assertIn("color-scheme:light", doc)
+
+
+class TestFormatos(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.pasta = Path(tmp.name)
+        (self.pasta / "apresentacao-pitch.md").write_text(ROTEIRO, encoding="utf-8")
+
+    def test_pdf_e_pptx_saem_do_html_pelo_navegador(self):
+        chamadas = []
+
+        def renderizar(pagina, total, destinos, notas, titulo):
+            chamadas.append((total, sorted(destinos), notas[2], titulo, "palco" in pagina))
+            return [destinos[f] for f in sorted(destinos)]
+        feitos = a.montar(self.pasta, formatos=("pdf", "pptx", "html"), renderizar=renderizar)
+        self.assertEqual(chamadas, [(4, ["pdf", "pptx"], "mostrar o REC", "Vatty: ouve e transforma", True)])
+        self.assertEqual({f.suffix for f in feitos}, {".html", ".pdf", ".pptx"})
+
+    def test_sem_navegador_pptx_sai_editavel_e_pdf_da_erro(self):
+        def sem(*_):
+            raise RuntimeError("sem Chrome.")
+        avisos = []
+        if importlib.util.find_spec("pptx"):
+            feitos = a.montar(self.pasta, formatos=("pptx",), avisar=avisos.append, renderizar=sem)
+            self.assertEqual(feitos, [self.pasta / "apresentacao-pitch.pptx"])
+            self.assertIn("editável", avisos[0])
+        with self.assertRaises(a.ErroApresentacao):
+            a.montar(self.pasta, formatos=("pdf",), renderizar=sem)
+        with self.assertRaises(a.ErroApresentacao):
+            a.montar(self.pasta, formatos=("gif",))
 
 
 class TestCli(unittest.TestCase):

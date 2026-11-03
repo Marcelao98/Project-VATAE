@@ -97,6 +97,63 @@ class TestMontar(unittest.TestCase):
             textos = " ".join(f.text_frame.text for f in prs.slides[1].shapes if f.has_text_frame)
             self.assertIn("Como funciona", textos)
 
+    @unittest.skipUnless(importlib.util.find_spec("pptx"), "python-pptx não instalado")
+    def test_pptx_usa_marca_capa_e_cores_do_assunto(self):
+        from PIL import Image
+        from pptx import Presentation
+        from vatty import apresentacao_pptx as ap
+        with tempfile.TemporaryDirectory() as d:
+            pasta = Path(d)
+            (pasta / "frames").mkdir()
+            Image.new("RGB", (40, 30), "white").save(pasta / "frames" / "0003.jpg")
+            roteiro = ROTEIRO.replace("subtitulo: Tudo no seu PC.\n", "subtitulo: Tudo no seu PC.\nmarca: Freddy\n"
+                                      "capa: frames/0003.jpg 10 10 50 50\ncores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62\n")
+            (pasta / "apresentacao-freddy.md").write_text(roteiro, encoding="utf-8")
+            prs = Presentation(a.montar(pasta)[0])
+            capa = prs.slides[0].shapes
+            textos = " ".join(f.text_frame.text for f in capa if f.has_text_frame)
+            self.assertIn("Freddy", textos)
+            self.assertNotIn("Vatty ", textos + " ")
+            self.assertEqual(sum(1 for f in capa if f.shape_type == 13), 2)   # fundo + capa
+            self.assertEqual(ap.COR, ap.VATTY)                                # a paleta volta ao padrão depois
+
+
+class TestAssunto(unittest.TestCase):
+    def test_marca_capa_e_cores_sao_do_deck_e_nao_viram_slide(self):
+        deck = a.ler(ROTEIRO.replace("subtitulo: Tudo no seu PC.\n", "subtitulo: Tudo no seu PC.\nmarca: Freddy\n"
+                                     "capa: frames/0003.jpg 30 18 40 38\ncores: fundo #F5F5F7, texto=#1e1e23 destaque #bf4a62\n"))
+        self.assertEqual(deck["marca"], "Freddy")
+        self.assertEqual(deck["capa"], {"caminho": "frames/0003.jpg", "recorte": (30, 18, 40, 38)})
+        self.assertEqual(deck["cores"], {"fundo": "f5f5f7", "texto": "1e1e23", "destaque": "bf4a62"})
+        self.assertEqual(len(deck["slides"]), 3)
+
+    def test_sem_capa_nao_tem_arte_da_vatty_e_capa_vatty_tem(self):
+        self.assertIsNone(a.ler(ROTEIRO)["capa"])
+        self.assertEqual(a.ler("# T\ncapa: vatty\n## S\n- x")["capa"]["caminho"], str(a.ARTE))
+        self.assertIsNone(a.ler("# T\ncapa: nenhuma\n## S\n- x")["capa"])
+
+    def test_capa_relativa_nao_sai_da_pasta_e_precisa_ser_imagem(self):
+        with tempfile.TemporaryDirectory() as d:
+            pasta = Path(d) / "video"
+            pasta.mkdir()
+            (Path(d) / "fora.png").write_bytes(b"x")
+            (pasta / "nota.txt").write_text("x")
+            (pasta / "capa.png").write_bytes(b"x")
+            arte = lambda v: a.arte_do_deck(a.ler(f"# T\ncapa: {v}\n## S\n- x"), pasta)
+            self.assertIsNone(arte("../fora.png"))
+            self.assertIsNone(arte("nota.txt"))
+            self.assertIsNone(arte("sumiu.png"))
+            self.assertEqual(arte("capa.png"), ((pasta / "capa.png").resolve(), None))
+            self.assertEqual(arte(str(Path(d) / "fora.png")), (Path(d) / "fora.png", None))   # absoluto vale
+
+    def test_html_usa_a_marca_e_as_cores(self):
+        doc = a.para_html(a.ler("# T\nmarca: Freddy\ncores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62\n## S\n- x"), ".")
+        self.assertIn('<span class="marca">Freddy</span>', doc)
+        self.assertNotIn(">Vatty<", doc)
+        self.assertIn("--oficina:#f5f5f7", doc)
+
+
+class TestCli(unittest.TestCase):
     def test_cli_sem_roteiro_da_erro(self):
         with tempfile.TemporaryDirectory() as d:
             self.assertEqual(cli.main(["apresentacao", d]), 1)

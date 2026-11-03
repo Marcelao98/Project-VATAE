@@ -2,11 +2,20 @@
 
 ## 0.20.1 — 2026-11-03
 
+- **Apresentador segue o que a pessoa falou e usa a cara do assunto**: antes de montar, o agente lista cada
+  instrução dita na gravação ("tira um print disso", "não deixa aparecer a playlist", "coloca uma capa do
+  Frederico", "no final põe que procuro emprego") em linhas `> pedido [mm:ss]: ... -> como foi cumprido` e
+  segue cada uma. O deck é do assunto, não da Vatty: chaves novas no roteiro `marca:` (rodapé), `capa:` (imagem
+  do assunto, com recorte; `capa: vatty` só se o vídeo for da Vatty) e `cores:` (fundo, texto, destaque, claro ou
+  escuro). Sem `capa:` não há mais arte da Vatty. Recorte de print com tamanho mínimo (nada de faixa ilegível).
+- **Verificado de verdade**: a gravação do Freddy de 03/11, pelo mesmo caminho do painel (`claude -p`), virou um
+  deck de 10 slides com a calopsita na capa, as cores do app, nada da playlist nem do Elden Ring e o fim com
+  "eletricista formado e manjo de dados". A primeira versão (antes do ajuste) tinha a arte da Vatty na capa.
 - **Chamar o Apresentador pela biblioteca**: no leitor de um vídeo já transcrito, o bloco "Apresentador" tem
   um campo opcional (pra quem é a apresentação) e o botão "Chamar o Apresentador". O pedido é anotado no
   `pedidos.json` da pasta e entra na pista dos agentes (`POST /api/video/<slug>/agentes`); o `.pptx` aparece
   nos arquivos do vídeo quando fica pronto. Antes, o Apresentador só podia ser pedido antes de transcrever.
-- 593 testes. **Verificado**: o painel numa cópia da gravação de 01/11, com um `claude` falso, anotou o pedido
+- 598 testes. **Verificado**: o painel numa cópia da gravação de 01/11, com um `claude` falso, anotou o pedido
   e rodou o trabalho na pista dos agentes até "Pronto". Falta ver o botão na tela e rodar com o Claude Code de verdade.
 - **Pronto do painel mostra o arquivo final**: "O que os agentes escreveram" listava só os `.md`, então a
   apresentação aparecia como o roteiro `.md` e o `.pptx` ficava escondido (e a ata sem o `.docx`/`.pdf`, as

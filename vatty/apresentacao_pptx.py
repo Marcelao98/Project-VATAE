@@ -1,6 +1,7 @@
 """
 O deck do Apresentador em PowerPoint (.pptx), com o mesmo visual do .html: fundo escuro com brilho ciano e rosa,
-moldura tracejada (a costura), prints recortados numa janela e a arte da Vatty na capa e no fim.
+moldura tracejada (a costura), prints recortados numa janela e a imagem do assunto (`capa:`) na capa e no fim.
+Com `cores:` no roteiro, o deck usa as cores do assunto (claro ou escuro) no lugar das da Vatty.
 
 Precisa do extra `apresentacao` (`pip install -e ".[apresentacao]"`: python-pptx, que já traz o Pillow).
 Tudo é desenhado numa grade de 1600 x 900 "pontos de tela" (a mesma do .html) e convertido para a página 16:9.
@@ -18,7 +19,27 @@ FONTE, MONO = "Calibri", "Consolas"
 COR = {"fundo": "07090F", "papel": "EEF4FA", "papel2": "9FB0C4", "item": "D9E4EF", "ouvido": "2FD4F2",
        "costura": "FF9A3D", "fone": "FF7EB6", "cartao": "161D2D", "borda": "2C3650", "costura_fraca": "4A3423",
        "chip": "0D2630", "chip_borda": "1B5868"}
+VATTY = dict(COR)
 MARCADORES = ("ouvido", "costura", "fone")
+
+
+def _mistura(a: str, b: str, t: float) -> str:
+    """Cor entre a e b (hex sem #): t=0 é a, t=1 é b."""
+    x, y = (tuple(int(c[i:i + 2], 16) for i in (0, 2, 4)) for c in (a, b))
+    return "".join(f"{round(p + (q - p) * t):02X}" for p, q in zip(x, y))
+
+
+def paleta(cores: dict | None) -> dict:
+    """As cores do deck: as da Vatty, ou derivadas de fundo/texto/destaque(/destaque2) do roteiro."""
+    if not cores:
+        return dict(VATTY)
+    fundo, texto = cores.get("fundo", VATTY["fundo"]).upper(), cores.get("texto", VATTY["papel"]).upper()
+    d1 = cores.get("destaque", VATTY["ouvido"]).upper()
+    d2 = cores.get("destaque2", _mistura(d1, texto, 0.35)).upper()
+    return {"fundo": fundo, "papel": texto, "papel2": _mistura(texto, fundo, 0.4), "item": _mistura(texto, fundo, 0.12),
+            "ouvido": d1, "costura": d2, "fone": d1, "cartao": _mistura(fundo, texto, 0.06),
+            "borda": _mistura(fundo, texto, 0.18), "costura_fraca": _mistura(fundo, d1, 0.3),
+            "chip": _mistura(fundo, d1, 0.1), "chip_borda": _mistura(fundo, d1, 0.45)}
 ESQ, LARG = 110, 1380            # margem e largura útil
 EMU_POR_PX = 914400 // 120       # 1600 px = 13,333 pol
 
@@ -79,14 +100,15 @@ def _png(img) -> io.BytesIO:
 
 
 def _fundo():
-    """1600 x 900: o escuro da oficina com o brilho ciano em cima à direita e o rosa embaixo à esquerda."""
+    """1600 x 900: o fundo com um brilho do destaque em cima à direita e outro embaixo à esquerda."""
     import numpy as np
     from PIL import Image
+    rgb = lambda c: np.array([int(COR[c][i:i + 2], 16) for i in (0, 2, 4)], np.float32)
     y, x = np.mgrid[0:900, 0:1600].astype(np.float32)
-    base = np.array([7, 9, 15], np.float32)
+    base = rgb("fundo")
     ciano = np.clip(1 - np.hypot((x - 1410) / 1100, (y + 90) / 620), 0, 1)[..., None] ** 1.6 * 0.20
     rosa = np.clip(1 - np.hypot((x + 80) / 900, (y - 990) / 600), 0, 1)[..., None] ** 1.6 * 0.17
-    img = base + ciano * (np.array([47, 212, 242]) - base) + rosa * (np.array([255, 126, 182]) - base)
+    img = base + ciano * (rgb("ouvido") - base) + rosa * (rgb("fone") - base)
     return Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).convert("RGB")
 
 
@@ -121,11 +143,19 @@ def _janela(caminho: Path, recorte):
     return _cantos(tela, int(16 * escala))
 
 
-def _arte(caminho: Path, giro: float):
-    """A arte da Vatty com cantos redondos, contorno ciano e levemente girada."""
+def _arte(caminho: Path, giro: float, recorte=None):
+    """A imagem da capa (recortada, se pedido) num cartão de cantos redondos, contorno do destaque, levemente girada.
+    Fundo transparente (um PNG recortado) fica sobre o cartão do deck."""
     from PIL import Image, ImageDraw
-    img = _cantos(Image.open(caminho).convert("RGB"), 36)
-    ImageDraw.Draw(img).rounded_rectangle([1, 1, img.size[0] - 2, img.size[1] - 2], 36, outline=(47, 212, 242, 150),
+    img = Image.open(caminho).convert("RGBA")
+    if recorte:
+        x, y, w, h = recorte
+        W, H = img.size
+        img = img.crop((round(x / 100 * W), round(y / 100 * H), round((x + w) / 100 * W), round((y + h) / 100 * H)))
+    cartao = Image.new("RGBA", img.size, "#" + COR["cartao"])
+    img = _cantos(Image.alpha_composite(cartao, img).convert("RGB"), 36)
+    d1 = tuple(int(COR["ouvido"][i:i + 2], 16) for i in (0, 2, 4))
+    ImageDraw.Draw(img).rounded_rectangle([1, 1, img.size[0] - 2, img.size[1] - 2], 36, outline=d1 + (150,),
                                           width=3)
     return img.rotate(giro, resample=Image.BICUBIC, expand=True)
 
@@ -206,13 +236,14 @@ def _marcador(slide, x, y, i, lado=17):
     _forma(slide, "ROUNDED_RECTANGLE", x, y, lado, lado, MARCADORES[i % 3], raio=5)
 
 
-def _base(prs, fundo_png, n, total):
+def _base(prs, fundo_png, n, total, marca=""):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     slide.shapes.add_picture(_png(fundo_png), 0, 0, prs.slide_width, prs.slide_height)
     _forma(slide, "ROUNDED_RECTANGLE", 26, 26, 1548, 848, borda="costura_fraca", tracejado=True, raio=22,
            largura_borda=1.5)
-    _forma(slide, "OVAL", ESQ, 836, 10, 10, "fone")
-    _caixa(slide, ESQ + 22, 828, 200, 26, "Vatty", 11, "papel2", True, MONO, espacamento=100)
+    if marca:
+        _forma(slide, "OVAL", ESQ, 836, 10, 10, "fone")
+        _caixa(slide, ESQ + 22, 828, 600, 26, marca, 11, "papel2", True, MONO, espacamento=100)
     _caixa(slide, 1290, 828, 200, 26, f"{n:02d} / {total:02d}", 11, "papel2", True, MONO, "dir", espacamento=100)
     return slide
 
@@ -252,7 +283,7 @@ def _rotulo(slide, texto, y):
 # --- tipos de slide -----------------------------------------------------------------------------------------------
 
 def _capa(prs, fundo, deck, fonte, total, arte):
-    slide = _base(prs, fundo, 1, total)
+    slide = _base(prs, fundo, 1, total, deck.get("marca", ""))
     w = 860
     h_tit = _altura(deck["titulo"], w, 62, 1.0)
     h_sub = _altura(deck["subtitulo"], 800, 22) if deck["subtitulo"] else 0
@@ -273,8 +304,8 @@ def _capa(prs, fundo, deck, fonte, total, arte):
     return slide
 
 
-def _slide(prs, fundo, s, n, total, pasta, url, arte):
-    slide = _base(prs, fundo, n, total)
+def _slide(prs, fundo, s, n, total, pasta, url, arte, marca=""):
+    slide = _base(prs, fundo, n, total, marca)
     tipo, itens = s["tipo"], s["itens"]
     janela = None
     if s["print"]:
@@ -351,9 +382,18 @@ def _slide(prs, fundo, s, n, total, pasta, url, arte):
     return slide
 
 
-def para_pptx(deck: dict, pasta, destino, fonte: dict | None = None, arte=ap.ARTE) -> Path:
-    """Escreve o deck em `destino` (.pptx) e devolve o caminho."""
+def para_pptx(deck: dict, pasta, destino, fonte: dict | None = None, arte=None) -> Path:
+    """Escreve o deck em `destino` (.pptx) e devolve o caminho. `arte`: None usa a `capa:` do roteiro."""
+    global COR
     _carregar()
+    antes, COR = COR, paleta(deck.get("cores"))
+    try:
+        return _para_pptx(deck, pasta, destino, fonte, arte)
+    finally:
+        COR = antes
+
+
+def _para_pptx(deck, pasta, destino, fonte, arte):
     from pptx import Presentation
     pasta, fonte, destino = Path(pasta), fonte or {}, Path(destino)
     prs = Presentation()
@@ -362,9 +402,12 @@ def para_pptx(deck: dict, pasta, destino, fonte: dict | None = None, arte=ap.ART
     url = fonte.get("url", "") if fonte.get("tipo") == "youtube" else ""
     total = len(deck["slides"]) + 1
     fundo = _fundo()
-    imagens_arte = (_arte(Path(arte), -2), _arte(Path(arte), 2)) if arte and Path(arte).is_file() else None
+    arte = arte or ap.arte_do_deck(deck, pasta)
+    caminho, recorte = arte if isinstance(arte, tuple) else (arte, None)
+    imagens_arte = ((_arte(Path(caminho), -2, recorte), _arte(Path(caminho), 2, recorte))
+                    if caminho and Path(caminho).is_file() else None)
     _capa(prs, fundo, deck, fonte, total, imagens_arte)
     for i, s in enumerate(deck["slides"]):
-        _slide(prs, fundo, s, i + 2, total, pasta, url, imagens_arte)
+        _slide(prs, fundo, s, i + 2, total, pasta, url, imagens_arte, deck.get("marca", ""))
     prs.save(destino)
     return destino

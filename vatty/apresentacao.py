@@ -11,6 +11,10 @@ Formato do .md (o agente segue `.claude/agents/apresentador.md`):
 
     # Título da apresentação
     subtitulo: uma linha
+    marca: Freddy               (opcional: o nome no rodapé de cada slide; sem ela, só o número)
+    capa: frames/0003.jpg 30 18 40 38   (opcional: a imagem do assunto na capa e no fim, com recorte opcional;
+                                caminho da pasta ou absoluto; `capa: vatty` usa a arte da Vatty; sem ela, sem arte)
+    cores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62   (opcional: as cores do assunto; sem ela, as da Vatty)
 
     ## Título do slide
     tipo: lista | passos | destaque | imagem | citacao | fim
@@ -31,7 +35,10 @@ from pathlib import Path
 
 ARTE = Path(__file__).resolve().parent / "ui" / "static" / "vatty-arte.jpg"
 TIPOS = ("lista", "passos", "destaque", "imagem", "citacao", "fim")
-CHAVES = ("tipo", "destaque", "print", "recorte", "citacao", "horario", "notas", "subtitulo")
+CHAVES = ("tipo", "destaque", "print", "recorte", "citacao", "horario", "notas", "subtitulo", "marca", "capa", "cores")
+DO_DECK = ("subtitulo", "marca", "capa", "cores")   # valem para a apresentação inteira, antes do primeiro "## "
+IMAGENS = (".png", ".jpg", ".jpeg", ".webp")
+RE_COR = re.compile(r"(fundo|texto|destaque2|destaque)\s*[:=]?\s*#?([0-9a-f]{6})\b", re.I)
 RE_CHAVE = re.compile(r"^(%s):\s*(.*)$" % "|".join(CHAVES), re.I)
 RE_HORARIO = re.compile(r"\[(\d{1,2}(?::\d{2}){1,2})\]")
 LARGURA, ALTURA = 1600, 900
@@ -43,8 +50,9 @@ class ErroApresentacao(ValueError):
 
 
 def ler(texto: str) -> dict:
-    """{titulo, subtitulo, slides: [{titulo, tipo, itens, destaque, print, recorte, citacao, horario, notas}]}."""
-    deck = {"titulo": "", "subtitulo": "", "slides": []}
+    """{titulo, subtitulo, marca, capa, cores, slides: [{titulo, tipo, itens, destaque, print, recorte, citacao,
+    horario, notas}]}."""
+    deck = {"titulo": "", "subtitulo": "", "marca": "", "capa": None, "cores": None, "slides": []}
     atual = None
     for linha in texto.splitlines():
         crua = linha.rstrip()
@@ -62,14 +70,18 @@ def ler(texto: str) -> dict:
         if achou:
             chave, valor = achou.group(1).lower(), achou.group(2).strip()
             if atual is None:
-                if chave == "subtitulo":
-                    deck["subtitulo"] = valor
+                if chave == "subtitulo" or chave == "marca":
+                    deck[chave] = valor
+                elif chave == "capa":
+                    deck["capa"] = _capa_de(valor)
+                elif chave == "cores":
+                    deck["cores"] = {k.lower(): v.lower() for k, v in RE_COR.findall(valor)} or None
                 continue
             if chave == "tipo":
                 atual["tipo"] = valor.lower() if valor.lower() in TIPOS else "lista"
             elif chave == "recorte":
                 atual["recorte"] = _recorte(valor)
-            elif chave != "subtitulo":
+            elif chave not in DO_DECK:
                 atual[chave] = valor
             continue
         if crua.lstrip().startswith(("- ", "* ")) and atual is not None:
@@ -77,6 +89,34 @@ def ler(texto: str) -> dict:
     if not deck["titulo"] or not deck["slides"]:
         raise ErroApresentacao("o arquivo precisa de um '# Título' e de pelo menos um '## Slide'.")
     return deck
+
+
+def _capa_de(valor: str):
+    """'frames/0003.jpg 30 18 40 38' -> {caminho, recorte}; 'vatty' -> a arte da Vatty; vazio/'nenhuma' -> None."""
+    partes = valor.split()
+    if not partes or partes[0].lower() in ("nenhuma", "nenhum", "sem"):
+        return None
+    if partes[0].lower() == "vatty":
+        return {"caminho": str(ARTE), "recorte": None}
+    recorte = _recorte(" ".join(partes[-4:])) if len(partes) >= 5 else None
+    caminho = " ".join(partes[:-4]) if recorte else valor.strip()
+    return {"caminho": caminho, "recorte": recorte}
+
+
+def arte_do_deck(deck: dict, pasta):
+    """(Path, recorte) da capa, se o arquivo existe e é imagem. Caminho relativo só vale dentro da pasta."""
+    capa = deck.get("capa")
+    if not capa:
+        return None
+    pasta = Path(pasta).resolve()
+    alvo = Path(capa["caminho"]).expanduser()
+    if not alvo.is_absolute():
+        alvo = (pasta / alvo).resolve()
+        if pasta not in alvo.parents:
+            return None
+    if alvo.suffix.lower() not in IMAGENS or not alvo.is_file():
+        return None
+    return alvo, capa["recorte"]
 
 
 def _recorte(valor: str):
@@ -146,7 +186,11 @@ def _itens(itens, classe="itens") -> str:
     return f'<ul class="{classe}" style="--cols:{colunas}">' + "".join(f"<li>{_inline(i)}</li>" for i in itens) + "</ul>"
 
 
-def _slide(slide: dict, n: int, total: int, pasta: Path, url: str, resolucao) -> str:
+def _marca(marca: str) -> str:
+    return f'<span class="marca">{html.escape(marca)}</span>' if marca else "<span></span>"
+
+
+def _slide(slide: dict, n: int, total: int, pasta: Path, url: str, resolucao, marca: str = "") -> str:
     tipo, titulo = slide["tipo"], _inline(slide["titulo"])
     chips, figura = _chips(slide["horario"], url), _print(slide, pasta, resolucao)
     if tipo == "passos":
@@ -172,7 +216,7 @@ def _slide(slide: dict, n: int, total: int, pasta: Path, url: str, resolucao) ->
     classe = "dividido" if tipo in ("lista", "fim") and (figura or tipo == "fim") else ""
     notas = f'<aside class="notas">{_inline(slide["notas"])}</aside>' if slide["notas"] else ""
     return (f'<section class="slide t-{tipo} {classe}" data-n="{n}" aria-label="Slide {n} de {total}">'
-            f'<div class="conteudo">{corpo}</div><footer><span class="marca">Vatty</span>'
+            f'<div class="conteudo">{corpo}</div><footer>{_marca(marca)}'
             f'<span class="num">{n:02d} / {total:02d}</span></footer>{notas}</section>')
 
 
@@ -186,17 +230,54 @@ def _capa(deck: dict, fonte: dict, total: int, arte: str | None) -> str:
             + (f'<p class="detalhe">{html.escape(detalhe)}</p>' if detalhe else "")
             + '<div class="costura-capa" aria-hidden="true"></div></div>'
             + ('<div class="arte" aria-hidden="true"></div>' if arte else "")
-            + f'</div><footer><span class="marca">Vatty</span><span class="num">01 / {total:02d}</span></footer></section>')
+            + f'</div><footer>{_marca(deck.get("marca", ""))}<span class="num">01 / {total:02d}</span></footer></section>')
 
 
-def para_html(deck: dict, pasta, fonte: dict | None = None, resolucao=PRINT_PADRAO, arte=ARTE) -> str:
+def _arte_html(arte) -> str | None:
+    """data: URI da capa (Path ou (Path, recorte)); o recorte precisa do Pillow, sem ele vai a imagem inteira."""
+    caminho, recorte = arte if isinstance(arte, tuple) else (Path(arte), None)
+    if recorte:
+        try:
+            import io
+            from PIL import Image
+            img = Image.open(caminho)
+            W, H = img.size
+            x, y, w, h = recorte
+            img = img.crop((round(x / 100 * W), round(y / 100 * H), round((x + w) / 100 * W), round((y + h) / 100 * H)))
+            buf = io.BytesIO()
+            img.save(buf, "PNG")
+            return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+        except ImportError:
+            pass
+    return _imagem(Path(caminho))
+
+
+def _css_cores(cores: dict | None) -> str:
+    if not cores:
+        return ""
+    v = {"fundo": "--oficina", "texto": "--papel", "destaque": "--ouvido"}
+    css = ";".join(f"{v[k]}:#{c}" for k, c in cores.items() if k in v)
+    d2 = cores.get("destaque2") or cores.get("destaque")
+    if d2:
+        css += f";--costura:#{d2};--fone:#{cores.get('destaque', d2)}"
+    if "fundo" in cores and "texto" in cores:
+        css += (f";--bancada:color-mix(in srgb,#{cores['fundo']} 94%,#{cores['texto']})"
+                f";--remendo:color-mix(in srgb,#{cores['fundo']} 88%,#{cores['texto']})"
+                f";--papel-2:color-mix(in srgb,#{cores['texto']} 62%,#{cores['fundo']})"
+                f";--fio:color-mix(in srgb,#{cores['fundo']} 80%,#{cores['texto']})")
+    return f":root{{{css}}}"
+
+
+def para_html(deck: dict, pasta, fonte: dict | None = None, resolucao=PRINT_PADRAO, arte=None) -> str:
+    """`arte`: None usa a `capa:` do roteiro (sem ela, sem arte); um Path força essa imagem."""
     pasta, fonte = Path(pasta), fonte or {}
     url = fonte.get("url", "") if fonte.get("tipo") == "youtube" else ""
     total = len(deck["slides"]) + 1
-    dados_arte = _imagem(Path(arte)) if arte else None
+    arte = arte or arte_do_deck(deck, pasta)
+    dados_arte = _arte_html(arte) if arte else None
     slides = [_capa(deck, fonte, total, dados_arte)]
-    slides += [_slide(s, i + 2, total, pasta, url, resolucao) for i, s in enumerate(deck["slides"])]
-    css_arte = f":root{{--arte:url('{dados_arte}')}}" if dados_arte else ""
+    slides += [_slide(s, i + 2, total, pasta, url, resolucao, deck.get("marca", "")) for i, s in enumerate(deck["slides"])]
+    css_arte = (f":root{{--arte:url('{dados_arte}')}}" if dados_arte else "") + _css_cores(deck.get("cores"))
     return (f'<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1">'
             f'<title>{html.escape(deck["titulo"])}</title><style>{css_arte}{CSS}</style></head>'
@@ -282,7 +363,7 @@ box-shadow:0 0 14px var(--fone);vertical-align:1px}
 /* capa e fim: arte à direita */
 .t-capa .conteudo{flex-direction:row;align-items:center;justify-content:space-between}
 .t-capa .texto{display:flex;flex-direction:column;gap:30px}
-.arte,.arte-fim{flex:none;width:470px;height:705px;border-radius:26px;background:var(--arte) center/cover;
+.arte,.arte-fim{flex:none;width:470px;height:705px;border-radius:26px;background:var(--arte) center/contain no-repeat;
 box-shadow:0 30px 90px rgba(0,0,0,.6),0 0 0 2px rgba(47,212,242,.35),0 0 60px rgba(47,212,242,.18);transform:rotate(2deg)}
 .arte-fim{width:380px;height:570px;transform:rotate(-2deg)}
 .dividido .conteudo{flex-direction:row;align-items:center;gap:70px}

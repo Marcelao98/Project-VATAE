@@ -9,8 +9,9 @@
   do assunto, com recorte; `capa: vatty` só se o vídeo for da Vatty) e `cores:` (fundo, texto, destaque, claro ou
   escuro). Sem `capa:` não há mais arte da Vatty. Recorte de print com tamanho mínimo (nada de faixa ilegível).
 - **`esconder:` garante o corte**: o que a pessoa mandou tirar ("não deixa aparecer o Subahibi") vai em
-  `esconder:` e o código (`vatty/esconder.py`) lê cada print com o Tesseract, borra as palavras (comparação
-  aproximada, porque o OCR erra letras) e, se não der para garantir, tira o print do slide. Achado porque a fala
+  `esconder:` e o código (`vatty/esconder.py`) lê cada print com o Tesseract (comparação aproximada, porque o
+  OCR erra letras) e **corta** o print para deixar as palavras de fora, perdendo o mínimo (borrão parecia que
+  algo estava sendo escondido); se não sobrar um pedaço bom ou não der para garantir, tira o print do slide. Achado porque a fala
   "sobre o ringue" era o Subahibi e o agente entendeu Elden Ring: agora ele procura o nome na tela e, na dúvida,
   esconde todos os candidatos.
 - **Verificado de verdade**: a gravação do Freddy de 03/11, pelo mesmo caminho do painel (`claude -p`), virou um

@@ -2,8 +2,9 @@
 Esconder nos prints o que a pessoa mandou cortar ("não deixa aparecer Subarashiki Hibi").
 
 O Apresentador escreve `esconder: Subarashiki Hibi, Subahibi` no roteiro; aqui o código garante: lê cada print com o
-Tesseract (palavra por palavra, com a caixa de cada uma), borra as palavras que batem com os termos e devolve a
-imagem limpa. O OCR erra letras ("subarasiiki", "Hibr"), então a comparação é aproximada.
+Tesseract (palavra por palavra, com a caixa de cada uma) e **corta** o print para deixar essas palavras de fora (o
+maior pedaço do recorte pedido que não as toca). Nada de borrão: borrão chama atenção para o que foi escondido.
+O OCR erra letras ("subarasiiki", "Hibr"), então a comparação é aproximada.
 
 Regra de segurança: se não dá para garantir (sem Tesseract, ou o texto da tela no `visual.json` cita o termo e o OCR
 não achou onde está), o print **não entra** no slide. Melhor um slide sem imagem que um post com o que foi proibido.
@@ -15,7 +16,8 @@ import subprocess
 import unicodedata
 from pathlib import Path
 
-MARGEM = 6          # px a mais em volta de cada palavra borrada
+MARGEM = 12         # px de folga em volta de cada palavra proibida
+SOBRA_MIN = 0.3     # se o corte deixar menos que isto da área pedida, o print sai do slide
 PARECIDO = 0.75     # quanto uma palavra lida pelo OCR precisa parecer com a do termo
 
 
@@ -80,25 +82,44 @@ def tesseract_tsv(caminho, executar=subprocess.run) -> str | None:
     return r.stdout if r.returncode == 0 else None
 
 
-def limpar(caminho, lista, pista: str = "", ler=tesseract_tsv):
+def cortar(area, proibidas):
     """
-    (imagem PIL limpa, quantas palavras borradas), ou (None, 0) se não dá para garantir que o termo sumiu.
-    `pista`: o texto que o Visual já leu desse print (no `visual.json`).
+    O maior retângulo dentro de `area` (x0, y0, x1, y1) que não encosta em nenhuma caixa proibida, cortando um lado
+    por vez (o que perde menos). None se sobrar menos que SOBRA_MIN da área.
     """
-    from PIL import Image, ImageFilter
+    x0, y0, x1, y1 = area
+    total = max(1, (x1 - x0) * (y1 - y0))
+    for bx0, by0, bx1, by1 in sorted(proibidas):
+        if bx1 <= x0 or bx0 >= x1 or by1 <= y0 or by0 >= y1:
+            continue
+        opcoes = [(x0, y0, bx0, y1), (bx1, y0, x1, y1), (x0, y0, x1, by0), (x0, by1, x1, y1)]
+        x0, y0, x1, y1 = max(opcoes, key=lambda r: max(0, r[2] - r[0]) * max(0, r[3] - r[1]))
+        if x1 <= x0 or y1 <= y0:
+            return None
+    return (x0, y0, x1, y1) if (x1 - x0) * (y1 - y0) >= SOBRA_MIN * total else None
+
+
+def limpar(caminho, lista, pista: str = "", recorte=None, ler=tesseract_tsv):
+    """
+    (imagem PIL já recortada sem os termos, quantas palavras ficaram de fora), ou (None, 0) se não dá para garantir.
+    `recorte`: o pedaço pedido, em % (esquerda, topo, largura, altura). `pista`: o texto que o Visual já leu do print.
+    """
+    from PIL import Image
     img = Image.open(caminho).convert("RGB")
+    W, H = img.size
+    if recorte:
+        x, y, w, h = recorte
+        area = (round(x / 100 * W), round(y / 100 * H), round((x + w) / 100 * W), round((y + h) / 100 * H))
+    else:
+        area = (0, 0, W, H)
     if not lista:
-        return img, 0
+        return img.crop(area), 0
     tsv = ler(Path(caminho))
     if tsv is None:
         return None, 0
     achadas = [c for c in caixas(tsv) if bate(c[0], lista)]
     if not achadas:
-        return (None, 0) if cita(pista, lista) else (img, 0)
-    W, H = img.size
-    for _, x, y, w, h in achadas:
-        caixa = (max(0, x - MARGEM), max(0, y - MARGEM), min(W, x + w + MARGEM), min(H, y + h + MARGEM))
-        pedaco = img.crop(caixa)
-        pequeno = pedaco.resize((max(1, pedaco.size[0] // 12), max(1, pedaco.size[1] // 12)))
-        img.paste(pequeno.resize(pedaco.size, Image.NEAREST).filter(ImageFilter.GaussianBlur(4)), caixa[:2])
-    return img, len(achadas)
+        return (None, 0) if cita(pista, lista) else (img.crop(area), 0)
+    proibidas = [(x - MARGEM, y - MARGEM, x + w + MARGEM, y + h + MARGEM) for _, x, y, w, h in achadas]
+    final = cortar(area, proibidas)
+    return (img.crop(final), len(achadas)) if final else (None, 0)

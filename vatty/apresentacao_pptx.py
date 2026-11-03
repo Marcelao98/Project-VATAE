@@ -310,8 +310,8 @@ def _slide(prs, fundo, s, n, total, pasta, url, arte, deck):
     if s["print"]:
         alvo = (pasta / s["print"]).resolve()
         if pasta.resolve() in alvo.parents and alvo.is_file():
-            img = ap.abrir_imagem(alvo, deck)
-            janela = _janela(img, s["recorte"]) if img is not None else None
+            img, recorte = ap.abrir_imagem(alvo, deck, s["recorte"])
+            janela = _janela(img, recorte) if img is not None else None
 
     if tipo == "passos":
         y = _titulo(slide, s["titulo"]) + 70
@@ -404,7 +404,7 @@ def _para_pptx(deck, pasta, destino, fonte, arte):
     fundo = _fundo()
     arte = arte or ap.arte_do_deck(deck, pasta)
     caminho, recorte = arte if isinstance(arte, tuple) else (arte, None)
-    img = ap.abrir_imagem(Path(caminho), deck) if caminho and Path(caminho).is_file() else None
+    img, recorte = ap.abrir_imagem(Path(caminho), deck, recorte) if caminho and Path(caminho).is_file() else (None, None)
     imagens_arte = (_arte(img, -2, recorte), _arte(img, 2, recorte)) if img is not None else None
     _capa(prs, fundo, deck, fonte, total, imagens_arte)
     for i, s in enumerate(deck["slides"]):

@@ -29,15 +29,20 @@ class TestLimpar(unittest.TestCase):
         from PIL import Image
         self.tmp = tempfile.TemporaryDirectory()
         self.img = Path(self.tmp.name) / "p.png"
-        Image.new("RGB", (300, 60), "white").save(self.img)
+        Image.new("RGB", (300, 200), "white").save(self.img)
 
     def tearDown(self):
         self.tmp.cleanup()
 
-    def test_borra_as_palavras_do_termo(self):
+    def test_corta_o_print_para_deixar_o_termo_de_fora(self):
         img, n = e.limpar(self.img, ["Subarashiki Hibi"], ler=lambda p: TSV)
         self.assertEqual(n, 2)
-        self.assertIsNotNone(img)
+        self.assertEqual(img.size, (300, 200 - 30 - e.MARGEM))   # corta a faixa de cima, onde está o nome
+
+    def test_cortar_escolhe_o_lado_que_perde_menos_e_desiste_se_sobra_pouco(self):
+        self.assertEqual(e.cortar((0, 0, 100, 100), [(90, 0, 100, 10)]), (0, 0, 90, 100))
+        self.assertEqual(e.cortar((0, 0, 100, 100), [(200, 0, 210, 10)]), (0, 0, 100, 100))   # fora da área
+        self.assertIsNone(e.cortar((0, 0, 100, 100), [(10, 10, 90, 90)]))                      # no meio de tudo
 
     def test_sem_garantia_o_print_sai(self):
         self.assertEqual(e.limpar(self.img, ["Subahibi"], ler=lambda p: None), (None, 0))           # sem Tesseract

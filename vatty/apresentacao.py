@@ -15,8 +15,8 @@ Formato do .md (o agente segue `.claude/agents/apresentador.md`):
     capa: frames/0003.jpg 30 18 40 38   (opcional: a imagem do assunto na capa e no fim, com recorte opcional;
                                 caminho da pasta ou absoluto; `capa: vatty` usa a arte da Vatty; sem ela, sem arte)
     cores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62   (opcional: as cores do assunto; sem ela, as da Vatty)
-    esconder: Subarashiki Hibi, Subahibi   (opcional: o que a pessoa mandou cortar; o código borra nos prints e,
-                                se não der para garantir, tira o print do slide; ver `esconder.py`)
+    esconder: Subarashiki Hibi, Subahibi   (opcional: o que a pessoa mandou cortar; o código corta os prints para
+                                deixar isso de fora e, se não der, tira o print do slide; ver `esconder.py`)
 
     ## Título do slide
     tipo: lista | passos | destaque | imagem | citacao | fim
@@ -124,19 +124,22 @@ def arte_do_deck(deck: dict, pasta):
     return alvo, capa["recorte"]
 
 
-def abrir_imagem(caminho, deck: dict):
-    """A imagem (PIL) pronta para o slide: com `esconder:`, já borrada; None se não dá para garantir o corte."""
+def abrir_imagem(caminho, deck: dict, recorte=None):
+    """
+    (imagem PIL, recorte que falta aplicar). Com `esconder:`, a imagem já vem recortada sem os termos (e o recorte
+    que falta é None); (None, None) se não dá para garantir o corte.
+    """
     from PIL import Image
     termos = deck.get("esconder") or []
     if not termos:
-        return Image.open(caminho).convert("RGB")
+        return Image.open(caminho).convert("RGB"), recorte
     from . import esconder
     cache = deck.setdefault("_limpas", {})
-    chave = str(Path(caminho).resolve())
+    chave = (str(Path(caminho).resolve()), recorte)
     if chave not in cache:
         pista = (deck.get("_pistas") or {}).get(Path(caminho).name, "")
-        cache[chave] = esconder.limpar(caminho, termos, pista)[0]
-    return cache[chave]
+        cache[chave] = esconder.limpar(caminho, termos, pista, recorte)[0]
+    return cache[chave], None
 
 
 def _recorte(valor: str):
@@ -194,15 +197,18 @@ def _print(slide: dict, pasta: Path, resolucao) -> str:
         return ""
     if slide.get("_sem_print"):
         return ""
+    recorte = slide["recorte"]
     if deck_termos := slide.get("_esconder"):
-        img = abrir_imagem(alvo, {"esconder": deck_termos, "_pistas": slide.get("_pistas")}) if alvo.is_file() else None
+        img, recorte = (abrir_imagem(alvo, {"esconder": deck_termos, "_pistas": slide.get("_pistas")}, recorte)
+                        if alvo.is_file() else (None, None))
         dados = _png_data(img) if img is not None else None
+        resolucao = img.size if img is not None else resolucao
     else:
         dados = _imagem(alvo)
     if not dados:
         return ""
     w_img, h_img = resolucao
-    x, y, w, h = slide["recorte"] or (0, 0, 100, 100)
+    x, y, w, h = recorte or (0, 0, 100, 100)
     proporcao = (w * w_img) / (h * h_img)
     pos_x = 0 if w >= 100 else x / (100 - w) * 100
     pos_y = 0 if h >= 100 else y / (100 - h) * 100
@@ -311,11 +317,7 @@ def para_html(deck: dict, pasta, fonte: dict | None = None, resolucao=PRINT_PADR
         s["_esconder"], s["_pistas"] = deck.get("esconder"), deck.get("_pistas")
     if arte and deck.get("esconder"):
         caminho, recorte = arte if isinstance(arte, tuple) else (Path(arte), None)
-        img = abrir_imagem(caminho, deck)
-        if img is not None and recorte:
-            W, H = img.size
-            x, y, w, h = recorte
-            img = img.crop((round(x / 100 * W), round(y / 100 * H), round((x + w) / 100 * W), round((y + h) / 100 * H)))
+        img, _ = abrir_imagem(caminho, deck, recorte)
         dados_arte = _png_data(img) if img is not None else None
     else:
         dados_arte = _arte_html(arte) if arte else None

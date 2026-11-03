@@ -41,7 +41,8 @@ Como cumprir cada tipo de pedido:
   primeiro com `inicio` igual ou logo depois da fala), recortado no que ela estava mostrando.
 - **"Não deixa aparecer X" / "tira essa parte"**: é **proibido**, sem exceção. X não entra em item, título, notas
   nem print. Além de escolher e recortar os prints para fora de X (confira cada um com `Read`), escreva
-  `esconder: X, variações` no topo: o código lê cada print e **borra** X, e tira o print se não conseguir. Nome
+  `esconder: X, variações` no topo: o código lê cada print e **corta** o print para deixar X de fora (nada de
+  borrão, que parece suspeito), e tira o print se não sobrar um pedaço bom. Nome
   torto na transcrição ("sobre o ringue", "plinquedinha"): procure com `Grep` no `visual.json`, perto daquele
   horário, a palavra da tela que soa parecido ("Subahibi", "Subarashiki Hibi", "playlist"). Na dúvida entre
   candidatos, ponha **todos** no `esconder:` e diga isso na linha `> pedido`.
@@ -90,7 +91,7 @@ marca: Freddy
 capa: frames/0003.jpg 30 15 40 45
 cores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62
 esconder: Subarashiki Hibi, Subahibi
-> pedido [02:19]: não deixar aparecer o Subahibi -> esconder: (o código borra nos prints)
+> pedido [02:19]: não deixar aparecer o Subahibi -> esconder: (o código corta os prints para deixar o nome de fora)
 > pedido [04:25]: capa bonita do Frederico -> capa com a calopsita do print 0003
 > pedido [02:19]: não mostrar a playlist -> nenhum print da lista de músicas
 

@@ -15,6 +15,8 @@ Formato do .md (o agente segue `.claude/agents/apresentador.md`):
     capa: frames/0003.jpg 30 18 40 38   (opcional: a imagem do assunto na capa e no fim, com recorte opcional;
                                 caminho da pasta ou absoluto; `capa: vatty` usa a arte da Vatty; sem ela, sem arte)
     cores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62   (opcional: as cores do assunto; sem ela, as da Vatty)
+    esconder: Subarashiki Hibi, Subahibi   (opcional: o que a pessoa mandou cortar; o código borra nos prints e,
+                                se não der para garantir, tira o print do slide; ver `esconder.py`)
 
     ## Título do slide
     tipo: lista | passos | destaque | imagem | citacao | fim
@@ -35,8 +37,8 @@ from pathlib import Path
 
 ARTE = Path(__file__).resolve().parent / "ui" / "static" / "vatty-arte.jpg"
 TIPOS = ("lista", "passos", "destaque", "imagem", "citacao", "fim")
-CHAVES = ("tipo", "destaque", "print", "recorte", "citacao", "horario", "notas", "subtitulo", "marca", "capa", "cores")
-DO_DECK = ("subtitulo", "marca", "capa", "cores")   # valem para a apresentação inteira, antes do primeiro "## "
+CHAVES = ("tipo", "destaque", "print", "recorte", "citacao", "horario", "notas", "subtitulo", "marca", "capa", "cores", "esconder")
+DO_DECK = ("subtitulo", "marca", "capa", "cores", "esconder")   # valem para a apresentação inteira, antes do primeiro "## "
 IMAGENS = (".png", ".jpg", ".jpeg", ".webp")
 RE_COR = re.compile(r"(fundo|texto|destaque2|destaque)\s*[:=]?\s*#?([0-9a-f]{6})\b", re.I)
 RE_CHAVE = re.compile(r"^(%s):\s*(.*)$" % "|".join(CHAVES), re.I)
@@ -52,7 +54,7 @@ class ErroApresentacao(ValueError):
 def ler(texto: str) -> dict:
     """{titulo, subtitulo, marca, capa, cores, slides: [{titulo, tipo, itens, destaque, print, recorte, citacao,
     horario, notas}]}."""
-    deck = {"titulo": "", "subtitulo": "", "marca": "", "capa": None, "cores": None, "slides": []}
+    deck = {"titulo": "", "subtitulo": "", "marca": "", "capa": None, "cores": None, "esconder": [], "slides": []}
     atual = None
     for linha in texto.splitlines():
         crua = linha.rstrip()
@@ -74,6 +76,9 @@ def ler(texto: str) -> dict:
                     deck[chave] = valor
                 elif chave == "capa":
                     deck["capa"] = _capa_de(valor)
+                elif chave == "esconder":
+                    from . import esconder
+                    deck["esconder"] += esconder.termos(valor)
                 elif chave == "cores":
                     deck["cores"] = {k.lower(): v.lower() for k, v in RE_COR.findall(valor)} or None
                 continue
@@ -119,6 +124,21 @@ def arte_do_deck(deck: dict, pasta):
     return alvo, capa["recorte"]
 
 
+def abrir_imagem(caminho, deck: dict):
+    """A imagem (PIL) pronta para o slide: com `esconder:`, já borrada; None se não dá para garantir o corte."""
+    from PIL import Image
+    termos = deck.get("esconder") or []
+    if not termos:
+        return Image.open(caminho).convert("RGB")
+    from . import esconder
+    cache = deck.setdefault("_limpas", {})
+    chave = str(Path(caminho).resolve())
+    if chave not in cache:
+        pista = (deck.get("_pistas") or {}).get(Path(caminho).name, "")
+        cache[chave] = esconder.limpar(caminho, termos, pista)[0]
+    return cache[chave]
+
+
 def _recorte(valor: str):
     """'20 10 60 80' -> (20, 10, 60, 80) em %, ou None se não fizer sentido."""
     try:
@@ -158,6 +178,13 @@ def _chips(horario: str, url: str) -> str:
     return f'<div class="chips">{"".join(chips)}</div>' if chips else ""
 
 
+def _png_data(img) -> str:
+    import io
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
 def _print(slide: dict, pasta: Path, resolucao) -> str:
     """O print numa moldura de janela; com recorte, só o pedaço pedido (fundo posicionado em %)."""
     if not slide["print"]:
@@ -165,7 +192,13 @@ def _print(slide: dict, pasta: Path, resolucao) -> str:
     alvo = (pasta / slide["print"]).resolve()
     if pasta.resolve() not in alvo.parents:
         return ""
-    dados = _imagem(alvo)
+    if slide.get("_sem_print"):
+        return ""
+    if deck_termos := slide.get("_esconder"):
+        img = abrir_imagem(alvo, {"esconder": deck_termos, "_pistas": slide.get("_pistas")}) if alvo.is_file() else None
+        dados = _png_data(img) if img is not None else None
+    else:
+        dados = _imagem(alvo)
     if not dados:
         return ""
     w_img, h_img = resolucao
@@ -274,7 +307,18 @@ def para_html(deck: dict, pasta, fonte: dict | None = None, resolucao=PRINT_PADR
     url = fonte.get("url", "") if fonte.get("tipo") == "youtube" else ""
     total = len(deck["slides"]) + 1
     arte = arte or arte_do_deck(deck, pasta)
-    dados_arte = _arte_html(arte) if arte else None
+    for s in deck["slides"]:
+        s["_esconder"], s["_pistas"] = deck.get("esconder"), deck.get("_pistas")
+    if arte and deck.get("esconder"):
+        caminho, recorte = arte if isinstance(arte, tuple) else (Path(arte), None)
+        img = abrir_imagem(caminho, deck)
+        if img is not None and recorte:
+            W, H = img.size
+            x, y, w, h = recorte
+            img = img.crop((round(x / 100 * W), round(y / 100 * H), round((x + w) / 100 * W), round((y + h) / 100 * H)))
+        dados_arte = _png_data(img) if img is not None else None
+    else:
+        dados_arte = _arte_html(arte) if arte else None
     slides = [_capa(deck, fonte, total, dados_arte)]
     slides += [_slide(s, i + 2, total, pasta, url, resolucao, deck.get("marca", "")) for i, s in enumerate(deck["slides"])]
     css_arte = (f":root{{--arte:url('{dados_arte}')}}" if dados_arte else "") + _css_cores(deck.get("cores"))
@@ -296,13 +340,20 @@ def montar(pasta, arquivo=None, formatos=("pptx",), ler_json=lambda p: json.load
         fonte = ler_json(pasta / "fonte.json")
     except (OSError, ValueError):
         pass
+    pistas = {}
     try:
-        resolucao = tuple(ler_json(pasta / "visual.json").get("resolucao") or PRINT_PADRAO)
-    except (OSError, ValueError):
+        visual = ler_json(pasta / "visual.json")
+        resolucao = tuple(visual.get("resolucao") or PRINT_PADRAO)
+        for e in visual.get("eventos") or []:   # o que o Visual já leu de cada print: a pista para o esconder
+            if e.get("frame"):
+                nome = Path(e["frame"]).name
+                pistas[nome] = (pistas.get(nome, "") + " " + (e.get("texto") or "")).strip()
+    except (OSError, ValueError, AttributeError):
         pass
     feitos = []
     for md in fontes:
         deck = ler(md.read_text(encoding="utf-8"))
+        deck["_pistas"] = pistas
         if "pptx" in formatos:
             from . import apresentacao_pptx
             feitos.append(apresentacao_pptx.para_pptx(deck, pasta, md.with_suffix(".pptx"), fonte))

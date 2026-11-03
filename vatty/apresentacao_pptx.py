@@ -121,10 +121,9 @@ def _cantos(img, raio):
     return img
 
 
-def _janela(caminho: Path, recorte):
-    """O print (recortado) com a barra de janela e cantos arredondados."""
+def _janela(img, recorte):
+    """O print (imagem PIL, já sem o que foi mandado esconder), recortado, com a barra de janela e cantos redondos."""
     from PIL import Image, ImageDraw
-    img = Image.open(caminho).convert("RGB")
     if recorte:
         x, y, w, h = recorte
         W, H = img.size
@@ -143,11 +142,11 @@ def _janela(caminho: Path, recorte):
     return _cantos(tela, int(16 * escala))
 
 
-def _arte(caminho: Path, giro: float, recorte=None):
+def _arte(img, giro: float, recorte=None):
     """A imagem da capa (recortada, se pedido) num cartão de cantos redondos, contorno do destaque, levemente girada.
     Fundo transparente (um PNG recortado) fica sobre o cartão do deck."""
     from PIL import Image, ImageDraw
-    img = Image.open(caminho).convert("RGBA")
+    img = img.convert("RGBA")
     if recorte:
         x, y, w, h = recorte
         W, H = img.size
@@ -304,14 +303,15 @@ def _capa(prs, fundo, deck, fonte, total, arte):
     return slide
 
 
-def _slide(prs, fundo, s, n, total, pasta, url, arte, marca=""):
-    slide = _base(prs, fundo, n, total, marca)
+def _slide(prs, fundo, s, n, total, pasta, url, arte, deck):
+    slide = _base(prs, fundo, n, total, deck.get("marca", ""))
     tipo, itens = s["tipo"], s["itens"]
     janela = None
     if s["print"]:
         alvo = (pasta / s["print"]).resolve()
         if pasta.resolve() in alvo.parents and alvo.is_file():
-            janela = _janela(alvo, s["recorte"])
+            img = ap.abrir_imagem(alvo, deck)
+            janela = _janela(img, s["recorte"]) if img is not None else None
 
     if tipo == "passos":
         y = _titulo(slide, s["titulo"]) + 70
@@ -404,10 +404,10 @@ def _para_pptx(deck, pasta, destino, fonte, arte):
     fundo = _fundo()
     arte = arte or ap.arte_do_deck(deck, pasta)
     caminho, recorte = arte if isinstance(arte, tuple) else (arte, None)
-    imagens_arte = ((_arte(Path(caminho), -2, recorte), _arte(Path(caminho), 2, recorte))
-                    if caminho and Path(caminho).is_file() else None)
+    img = ap.abrir_imagem(Path(caminho), deck) if caminho and Path(caminho).is_file() else None
+    imagens_arte = (_arte(img, -2, recorte), _arte(img, 2, recorte)) if img is not None else None
     _capa(prs, fundo, deck, fonte, total, imagens_arte)
     for i, s in enumerate(deck["slides"]):
-        _slide(prs, fundo, s, i + 2, total, pasta, url, imagens_arte, deck.get("marca", ""))
+        _slide(prs, fundo, s, i + 2, total, pasta, url, imagens_arte, deck)
     prs.save(destino)
     return destino

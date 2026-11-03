@@ -39,8 +39,12 @@ mostrar", "LinkedIn", "deixa bonito". A transcrição erra palavras ("Vati", "Fe
 Como cumprir cada tipo de pedido:
 - **"Tira um print disso" / "print dessa parte"**: use o print do `visual.json` mais perto daquele horário (o
   primeiro com `inicio` igual ou logo depois da fala), recortado no que ela estava mostrando.
-- **"Não deixa aparecer X" / "tira essa parte"**: X não entra em **nenhum** lugar: nem em item, nem em notas, nem
-  em print (confira o print com `Read`: se X aparece nele, recorte para fora ou troque de print).
+- **"Não deixa aparecer X" / "tira essa parte"**: é **proibido**, sem exceção. X não entra em item, título, notas
+  nem print. Além de escolher e recortar os prints para fora de X (confira cada um com `Read`), escreva
+  `esconder: X, variações` no topo: o código lê cada print e **borra** X, e tira o print se não conseguir. Nome
+  torto na transcrição ("sobre o ringue", "plinquedinha"): procure com `Grep` no `visual.json`, perto daquele
+  horário, a palavra da tela que soa parecido ("Subahibi", "Subarashiki Hibi", "playlist"). Na dúvida entre
+  candidatos, ponha **todos** no `esconder:` e diga isso na linha `> pedido`.
 - **"Coloca a imagem / uma capa de Y"**: `capa:` com a imagem de Y (veja abaixo).
 - **"No final põe Z"**: Z vai no slide `fim`, com as palavras dela limpas.
 - **Ordem que ela disse** ("primeiro coloca o secretário virtual"): siga essa ordem nos slides.
@@ -49,8 +53,9 @@ Como cumprir cada tipo de pedido:
   errado; o título é o assunto: "Um projeto maior: o secretário virtual").
 - **Antes de dizer que algo não foi dito ou veio cortado**, procure com `Grep` as palavras-chave na
   `transcricao.txt` (ex.: "eletricista", "emprego", "dados"). O que a pessoa pediu para pôr no slide costuma
-  estar na mesma fala ou logo depois, às vezes com a transcrição torta ("eu juro eletricista formado" = "sou
-  eletricista formado"): use isso, limpo.
+  estar na mesma fala ou logo depois, às vezes com a transcrição torta ("eu juro eletricista formado"): use isso,
+  limpo, sem trocar o sentido nem rebaixar a formação; se não dá para ter certeza do título exato, diga na linha
+  `> pedido` para a pessoa conferir.
 
 Escreva cada pedido no topo do arquivo, antes do primeiro `## `, numa linha `> pedido [mm:ss]: o que ela pediu ->
 como foi cumprido`. Se não deu para cumprir (não existe print daquilo), diga `-> não deu: motivo`. O código ignora
@@ -84,6 +89,8 @@ subtitulo: uma linha que diz o valor
 marca: Freddy
 capa: frames/0003.jpg 30 15 40 45
 cores: fundo #f5f5f7 texto #1e1e23 destaque #bf4a62
+esconder: Subarashiki Hibi, Subahibi
+> pedido [02:19]: não deixar aparecer o Subahibi -> esconder: (o código borra nos prints)
 > pedido [04:25]: capa bonita do Frederico -> capa com a calopsita do print 0003
 > pedido [02:19]: não mostrar a playlist -> nenhum print da lista de músicas
 
@@ -96,7 +103,7 @@ horario: [00:55]
 notas: o que dizer neste slide, em 1 ou 2 frases
 ```
 
-- `# Título` uma vez, no topo, seguido de `subtitulo:`, `marca:`, `capa:`, `cores:` e das linhas `> pedido`. A
+- `# Título` uma vez, no topo, seguido de `subtitulo:`, `marca:`, `capa:`, `cores:`, `esconder:` e das linhas `> pedido`. A
   capa sai daí: **não escreva** slide de capa.
 - Cada `## ` é um slide. Depois dele, só estas chaves (cada uma opcional, uma por linha):
   - `tipo:` `lista` (padrão), `passos` (um fluxo em ordem: 3 a 5 itens curtos), `destaque` (uma frase ou número

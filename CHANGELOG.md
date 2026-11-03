@@ -8,6 +8,11 @@
   segue cada uma. O deck é do assunto, não da Vatty: chaves novas no roteiro `marca:` (rodapé), `capa:` (imagem
   do assunto, com recorte; `capa: vatty` só se o vídeo for da Vatty) e `cores:` (fundo, texto, destaque, claro ou
   escuro). Sem `capa:` não há mais arte da Vatty. Recorte de print com tamanho mínimo (nada de faixa ilegível).
+- **`esconder:` garante o corte**: o que a pessoa mandou tirar ("não deixa aparecer o Subahibi") vai em
+  `esconder:` e o código (`vatty/esconder.py`) lê cada print com o Tesseract, borra as palavras (comparação
+  aproximada, porque o OCR erra letras) e, se não der para garantir, tira o print do slide. Achado porque a fala
+  "sobre o ringue" era o Subahibi e o agente entendeu Elden Ring: agora ele procura o nome na tela e, na dúvida,
+  esconde todos os candidatos.
 - **Verificado de verdade**: a gravação do Freddy de 03/11, pelo mesmo caminho do painel (`claude -p`), virou um
   deck de 10 slides com a calopsita na capa, as cores do app, nada da playlist nem do Elden Ring e o fim com
   "eletricista formado e manjo de dados". A primeira versão (antes do ajuste) tinha a arte da Vatty na capa.

@@ -50,8 +50,17 @@ def checar(procurar=shutil.which, tem_modulo=_tem_modulo, modelo_em_cache=_model
          "Só para `vatty ata`. Rode: pip install python-docx reportlab"),
         ("pptx", "Apresentação em PowerPoint (.pptx)", tem_modulo("pptx"), OPCIONAL,
          "Só para o Apresentador. Rode: pip install python-pptx"),
+        ("navegador", "Apresentação em PDF e PowerPoint no visual novo (Chrome, Chromium ou Edge)",
+         bool(_navegador(procurar)), OPCIONAL,
+         "Só para o Apresentador sair em PDF, ou em PowerPoint igual à página. Fedora: sudo dnf install chromium; "
+         "no Windows o Edge já vem. Sem ele, a página (.html) funciona e o PowerPoint sai no desenho simples."),
     ]
     return [{"id": i, "nome": n, "ok": ok, "nivel": nv, "ajuda": a} for i, n, ok, nv, a in itens]
+
+
+def _navegador(procurar):
+    from ..apresentacao_render import achar_navegador
+    return achar_navegador(procurar)
 
 
 def faltando_essencial(itens: list) -> list:

@@ -62,7 +62,7 @@ class TestCli(unittest.TestCase):
         with mock.patch("vatty.juntar.juntar", return_value=Path("g/video.mp4")) as m, redirect_stdout(io.StringIO()) as out:
             self.assertEqual(cli.main(["juntar", "g"]), 0)
         m.assert_called_once_with(Path("g"))
-        self.assertIn("Pronto para enviar: g/video.mp4", out.getvalue())
+        self.assertIn(f"Pronto para enviar: {Path('g/video.mp4')}", out.getvalue())   # \\ no Windows
 
     def test_cli_juntar_erro(self):
         with mock.patch("vatty.juntar.juntar", side_effect=juntar.ErroJuntar("Não achei a pasta g.")), \

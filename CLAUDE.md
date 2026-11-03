@@ -12,7 +12,7 @@ tem Discord. Até a versão 0.9.0 o projeto se chamava Natty-ATA.
 - **Onde o projeto está e o que vem depois: `docs/estado-atual.md` (ler primeiro).**
 - Persona e voz: `AGENTS.md`. Fluxograma: `docs/fluxo.md`.
 - Detalhe por módulo, legenda, visual e agentes: `docs/arquitetura.md` (ler só quando mexer nessa parte).
-- Testes feitos no PC real: `docs/testes-reais.md`.
+- Testes feitos no PC real: `docs/testes-reais.md`. O que testar e em que ordem: `docs/roteiro-de-testes.md`.
 - Instalar (Windows e Linux): `INSTALAR.md`; pelo Claude Code, a skill `instalar-vatty`.
 
 ## Persona (resumo)
@@ -68,7 +68,7 @@ duas metades compartilham:
 | `_consultas/<pergunta>/trechos.md`, `resposta.md` | código, Consulta | `vatty perguntar` escolhe os trechos; o agente responde só com eles |
 | `_comparacoes/comparacao-<a>-<b>.md` | Comparador | só o agente, lendo duas pastas |
 | `pericia-<assunto>.md` | Perito | laudo de uma gravação de teste de programa (de preferência com `--tela`): seções `## Resumo/Bugs/Lentidão e espera/Atrito/Comportamento observado/Para reproduzir/Dúvidas`; bug como `[mm:ss] o que \| evidência \| gravidade \| certeza` |
-| `apresentacao-<tema>.md`, `.pptx` | Apresentador + código | `.md`: `# Título`, `subtitulo:`, um `## ` por slide com `tipo:` (`lista/passos/destaque/imagem/citacao/fim`), `- item`, `print:`, `recorte:`, `horario:`, `notas:`; `vatty apresentacao <pasta>` (ou o painel, depois dos agentes) monta o `.pptx` (extra `apresentacao`; `--formato html` dá um deck que abre no navegador) |
+| `apresentacao-<tema>.md`, `.pptx` | Apresentador + código | `.md`: `# Título`, `subtitulo:`, `marca:`/`capa:`/`cores:` do assunto, `esconder:` (o código acha esses termos nos prints com o Tesseract e corta o print para deixá-los de fora, `esconder.py`; sem pedaço bom, tira o print) (nunca a Vatty, se o vídeo não é sobre ela), linhas `> pedido [mm:ss]:` com o que a pessoa mandou fazer na gravação, um `## ` por slide com `tipo:` (`lista/passos/destaque/imagem/citacao/fim`), `- item`, `print:`, `recorte:`, `horario:`, `notas:`; `vatty apresentacao <pasta> --formato pptx pdf html` (ou o painel, nos formatos marcados) monta o deck no visual "player" (`apresentacao_player.py`; PDF e `.pptx` são prints da página no Chrome/Chromium/Edge, `apresentacao_render.py`; `pptx-editavel` é o desenho simples com texto editável). Referência de nível: `exemplos/apresentacao-freddy/` |
 | `slides.html`, `slides.pdf` | Slides (código) | `vatty slides <pasta>` (ou o painel): um slide por tela do `visual.json`, com o print (embutido no HTML) e a fala do `transcricao.json` daquele intervalo; precisa do visual (`--visual aula/app` ou gravação com tela) |
 | `pedidos.json` | Painel (código) | só quando o painel pediu agentes: lista de `{agente, objetivo, pedido_em, estado}` (`pendente`/`feito`); ver "Pedidos do painel" |
 | `ata-<assunto>.docx`, `.pdf` | Ata (código) | `vatty ata <pasta>`: cabeçalho (data, duração, participantes) vindo de `fonte.json`/`falantes.json`, mais o `.md` do agente, com `Pessoa N` trocada pelos nomes dados |

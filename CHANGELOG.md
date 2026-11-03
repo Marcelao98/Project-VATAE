@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.20.2 — 2026-11-03
+
+- **Apresentação no visual "player", em PowerPoint, PDF ou página**: o deck do Apresentador ganhou o visual do
+  exemplo do Freddy (`exemplos/apresentacao-freddy/`): cada slide é uma faixa e a barra de baixo mostra o que está
+  tocando e de que ponto do vídeo aquilo saiu; capa com a imagem do assunto em ondas de som, etiquetas, cartões,
+  passos, destaque com onda, prints em janela, botão de convite no fim. Funciona claro ou escuro, nas `cores:` do
+  assunto (`destaque2` novo), com `olho:` e etiquetas da capa (`- item` antes do primeiro slide).
+  `vatty apresentacao --formato pptx pdf html` (e `pptx-editavel`, o desenho simples com texto editável): PDF e
+  PowerPoint são prints da página no Chrome/Chromium/Edge sem janela (`apresentacao_render.py`), iguais ao HTML,
+  com as notas no PowerPoint. Sem navegador, o PowerPoint sai no desenho simples (com aviso) e o PDF explica o que
+  instalar; o `vatty verificar` e a saúde do painel avisam.
+- **Painel**: no bloco do Apresentador, a pessoa marca os formatos (PowerPoint, PDF, Página); valem quando o agente
+  termina. Com roteiro pronto, "Montar de novo nestes formatos" refaz sem chamar o agente
+  (`POST /api/video/<slug>/apresentacao`). O Pronto lista também o `.pdf` e o `.html` da apresentação.
+- Exemplos guardados em `exemplos/apresentacao-freddy/` (os arquivos grandes, com prints, ficam fora do git).
+- 610 testes. **Verificado de verdade**: o roteiro do Freddy saiu em HTML, PDF e PowerPoint pelo código novo,
+  conferidos página a página.
+
+## 0.20.1 — 2026-11-03
+
+- **Apresentador segue o que a pessoa falou e usa a cara do assunto**: antes de montar, o agente lista cada
+  instrução dita na gravação ("tira um print disso", "não deixa aparecer a playlist", "coloca uma capa do
+  Frederico", "no final põe que procuro emprego") em linhas `> pedido [mm:ss]: ... -> como foi cumprido` e
+  segue cada uma. O deck é do assunto, não da Vatty: chaves novas no roteiro `marca:` (rodapé), `capa:` (imagem
+  do assunto, com recorte; `capa: vatty` só se o vídeo for da Vatty) e `cores:` (fundo, texto, destaque, claro ou
+  escuro). Sem `capa:` não há mais arte da Vatty. Recorte de print com tamanho mínimo (nada de faixa ilegível).
+- **`esconder:` garante o corte**: o que a pessoa mandou tirar ("não deixa aparecer o Subahibi") vai em
+  `esconder:` e o código (`vatty/esconder.py`) lê cada print com o Tesseract (comparação aproximada, porque o
+  OCR erra letras) e **corta** o print para deixar as palavras de fora, perdendo o mínimo (borrão parecia que
+  algo estava sendo escondido); se não sobrar um pedaço bom ou não der para garantir, tira o print do slide. Achado porque a fala
+  "sobre o ringue" era o Subahibi e o agente entendeu Elden Ring: agora ele procura o nome na tela e, na dúvida,
+  esconde todos os candidatos.
+- **Verificado de verdade**: a gravação do Freddy de 03/11, pelo mesmo caminho do painel (`claude -p`), virou um
+  deck de 10 slides com a calopsita na capa, as cores do app, nada da playlist nem do Elden Ring e o fim com
+  "eletricista formado e manjo de dados". A primeira versão (antes do ajuste) tinha a arte da Vatty na capa.
+- **Chamar o Apresentador pela biblioteca**: no leitor de um vídeo já transcrito, o bloco "Apresentador" tem
+  um campo opcional (pra quem é a apresentação) e o botão "Chamar o Apresentador". O pedido é anotado no
+  `pedidos.json` da pasta e entra na pista dos agentes (`POST /api/video/<slug>/agentes`); o `.pptx` aparece
+  nos arquivos do vídeo quando fica pronto. Antes, o Apresentador só podia ser pedido antes de transcrever.
+- 598 testes. **Verificado**: o painel numa cópia da gravação de 01/11, com um `claude` falso, anotou o pedido
+  e rodou o trabalho na pista dos agentes até "Pronto". Falta ver o botão na tela e rodar com o Claude Code de verdade.
+- **Pronto do painel mostra o arquivo final**: "O que os agentes escreveram" listava só os `.md`, então a
+  apresentação aparecia como o roteiro `.md` e o `.pptx` ficava escondido (e a ata sem o `.docx`/`.pdf`, as
+  cartas sem o `.csv`). Agora aparece o final no lugar do rascunho de mesmo nome. Achado na gravação de 03/11.
+
 ## 0.20.0 — 2026-10-31
 
 - **Apresentação de slides**: agente novo, o **Apresentador**, escreve o roteiro (`apresentacao-<tema>.md`: a

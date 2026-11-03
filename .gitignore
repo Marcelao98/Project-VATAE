@@ -4,3 +4,8 @@ __pycache__/
 transcricoes/
 .env
 gravacoes/
+# exemplos: os arquivos grandes (com os prints da gravação) ficam só no PC
+exemplos/**/*.pptx
+exemplos/**/*.pdf
+exemplos/**/Freddy-apresentacao.*
+exemplos/**/vatty-gerado.*

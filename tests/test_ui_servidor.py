@@ -232,6 +232,27 @@ class TestSlidesNaApi(Base):
         self.assertEqual(self.chamar("/api/video/nada/slides", {})[0], 404)
 
 
+class TestAgentesNumVideoPronto(Base):
+    _video = TestRevisaoNaApi._video
+
+    def test_chamar_o_apresentador_anota_e_enfileira_na_pista_dos_agentes(self):
+        self._video()
+        codigo, corpo = self.chamar("/api/video/aula/agentes", {"agentes": ["apresentador"], "objetivo": "diretoria"})
+        r = json.loads(corpo)
+        self.assertEqual((codigo, r["anotados"]), (200, ["apresentador"]))
+        self.assertEqual(r["trabalho"]["pista"], "agentes")
+        self.assertEqual(r["trabalho"]["entrada"], str((self.raiz / "aula").resolve()))
+        pedido = json.loads((self.raiz / "aula" / "pedidos.json").read_text(encoding="utf-8"))[0]
+        self.assertEqual((pedido["agente"], pedido["objetivo"], pedido["estado"]), ("apresentador", "diretoria", "pendente"))
+
+    def test_agente_desconhecido_e_400_e_video_que_nao_existe_e_404(self):
+        self._video()
+        self.assertEqual(self.chamar("/api/video/aula/agentes", {"agentes": ["zzz"]})[0], 400)
+        self.assertEqual(self.chamar("/api/video/aula/agentes", {"agentes": "apresentador"})[0], 400)
+        self.assertEqual(self.chamar("/api/video/nada/agentes", {"agentes": ["apresentador"]})[0], 404)
+        self.assertFalse((self.raiz / "aula" / "pedidos.json").exists())
+
+
 class TestTerminal(unittest.TestCase):
     def test_so_subcomandos_permitidos(self):
         with tempfile.TemporaryDirectory() as d:

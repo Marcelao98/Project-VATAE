@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.20.1 — 2026-11-03
+
+- **Chamar o Apresentador pela biblioteca**: no leitor de um vídeo já transcrito, o bloco "Apresentador" tem
+  um campo opcional (pra quem é a apresentação) e o botão "Chamar o Apresentador". O pedido é anotado no
+  `pedidos.json` da pasta e entra na pista dos agentes (`POST /api/video/<slug>/agentes`); o `.pptx` aparece
+  nos arquivos do vídeo quando fica pronto. Antes, o Apresentador só podia ser pedido antes de transcrever.
+- 593 testes. **Verificado**: o painel numa cópia da gravação de 01/11, com um `claude` falso, anotou o pedido
+  e rodou o trabalho na pista dos agentes até "Pronto". Falta ver o botão na tela e rodar com o Claude Code de verdade.
+
 ## 0.20.0 — 2026-10-31
 
 - **Apresentação de slides**: agente novo, o **Apresentador**, escreve o roteiro (`apresentacao-<tema>.md`: a

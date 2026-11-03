@@ -21,6 +21,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .. import buscar as _buscar
+from . import fila as _fila
 from . import biblioteca, claude, gravador as _gravador, pedidos, prompts, revisao, runner, saude, terminal
 
 ESTATICOS = Path(__file__).parent / "static"
@@ -236,6 +237,16 @@ class Handler(BaseHTTPRequestHandler):
             except slides.ErroSlides as e:
                 raise ValueError(str(e))
             return self._json({"gerados": [f.name for f in feitos]})
+        if metodo == "POST" and p[0] == "video" and len(p) == 3 and p[2] == "agentes":
+            # um vídeo já transcrito: anota o pedido e põe na pista dos agentes (ex.: "Chamar o Apresentador")
+            c = self._corpo_json()
+            pasta = biblioteca.pasta_de(s.raiz, p[1])
+            anotados = pedidos.registrar(pasta, c.get("agentes") if isinstance(c.get("agentes"), list) else [],
+                                         str(c.get("objetivo") or ""))
+            if not anotados:
+                raise ValueError("Escolha um agente que a Vatty conhece.")
+            t = s.fila.adicionar(str(pasta), {"agentes": anotados}, _fila.AGENTES)
+            return self._json({"anotados": anotados, "trabalho": t.resumo(), "claude": bool(claude.achar())})
         if metodo == "POST" and p[0] == "video" and len(p) == 3 and p[2] == "nomes":
             nomes = self._corpo_json().get("nomes")
             if not isinstance(nomes, dict):

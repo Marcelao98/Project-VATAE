@@ -237,8 +237,26 @@ function desenharLeitor() {
   const duvidosos = v.paragrafos.filter((p) => p.duvidoso).length;
   const filtro = el("label", { class: "filtro" }, el("input", { type: "checkbox", id: "so-duvidosos", onchange: () => desenharParagrafos() }),
     " Só os " + duvidosos + " trechos para revisar");
-  $("leitor").replaceChildren(topo, ferramentas(v), duvidosos ? filtro : el("span"), el("div", { class: "paragrafos", id: "paragrafos" }));
+  $("leitor").replaceChildren(topo, apresentador(v), ferramentas(v), duvidosos ? filtro : el("span"), el("div", { class: "paragrafos", id: "paragrafos" }));
   desenharParagrafos();
+}
+function apresentador(v) {  // o agente Apresentador num vídeo já transcrito: roteiro -> .pptx, pela pista dos agentes
+  const pronto = v.gerados.some((g) => /^apresentacao-.*\.(pptx|html)$/.test(g));
+  const objetivo = el("input", { maxlength: "300", placeholder: "Pra quem é e o que precisa conseguir (opcional)", "aria-label": "Objetivo da apresentação" });
+  const status = el("span", { role: "status", class: "dica" });
+  const botao = el("button", { class: "btn btn-principal", onclick: async () => {
+    botao.disabled = true;
+    try {
+      const r = await post("video/" + encodeURIComponent(v.slug) + "/agentes", { agentes: ["apresentador"], objetivo: objetivo.value.trim() });
+      status.textContent = r.claude
+        ? "Pedido feito. O Apresentador está na fila dos agentes; o .pptx aparece aqui nos arquivos quando ficar pronto (veja o andamento em Fila)."
+        : "Pedido anotado na pasta, mas o Claude Code não está neste PC. Instale e diga \"faz os pedidos da Vatty\".";
+    } catch (e) { status.textContent = e.message; botao.disabled = false; }
+  } }, pronto ? "Chamar o Apresentador de novo" : "Chamar o Apresentador");
+  return el("div", { class: "ferramenta apresentador" },
+    el("h3", {}, "Apresentador: apresentação de slides"),
+    el("p", { class: "dica" }, "Lê a transcrição e escreve a história, um slide por ideia, com os melhores prints da tela. Sai um PowerPoint (.pptx)."),
+    objetivo, el("div", { class: "linha-btn" }, botao, status));
 }
 async function gerarSlides(slug, botao) {  // um slide por tela, com o print e o que foi dito
   botao.disabled = true;

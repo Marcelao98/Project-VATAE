@@ -5,12 +5,9 @@ Arquivo de passagem de bastão: o que foi feito, o que falta e por onde continua
 
 ## 1. Estado do repositório
 
-- **`main` = GitHub = 0.20.0** (31/10, PR #27: Apresentador). **593 testes, todos verdes** no Fedora 44
-  (Python 3.14, `.venv`).
-- **Só no PC, ainda sem PR** (em cima do `main`, nesta ordem):
-  - `apresentador-no-painel` (0.20.1): botão "Chamar o Apresentador" no leitor da biblioteca. É a versão
-    que o atalho do desktop abre desde 03/11. Falta ver o botão funcionando com o Claude Code de verdade.
-  - `arrumacao-novembro`: CI no GitHub Actions, este arquivo, o roteiro de testes e o BACKLOG atualizados.
+- **`main` = GitHub = 0.20.2** (03/11): Apresentador pelo painel, seguindo as instruções faladas, com `esconder:`
+  e o visual "player" em PowerPoint, PDF ou página (exemplo em `exemplos/apresentacao-freddy/`); CI no GitHub
+  Actions; roteiro de testes. **610 testes, todos verdes** no Fedora 44 (Python 3.14, `.venv`).
 - **Pendente de decisão:** o ramo `ccr-883f2a0c-0pd5sv` (no GitHub) troca a licença MIT pela PolyForm
   Noncommercial 1.0.0 (seria a 0.21.0). Nada foi juntado.
 - **Ramos antigos:** 26 ramos do GitHub já estão inteiros dentro do `main` (conferido em 03/11) e podem
@@ -31,10 +28,10 @@ Os 14 itens do roteiro do `CLAUDE.md` estão **feitos em código e testados com 
 | 3 · painel com tela e áudio | **ok** (31/10): Pronto com `visual.json` e laudo do Perito |
 | 2 · tela no Wayland pela CLI | falta: permissão lembrada, cancelar, Ctrl+C |
 | sincronia tela × fala | falta medir (3 trocas de tela com "agora") |
-| `tela.mp4` apagado com "Guardar o vídeo da tela" | consertado na 0.19.x; falta confirmar |
+| `tela.mp4` apagado com "Guardar o vídeo da tela" | **ok** (03/11): ficou guardado |
 | 4 · YouTube pelo painel | falta |
 | Perito | rodou uma vez (31/10); falta conferir se os bugs têm evidência e nada inventado |
-| Apresentador | deck do pitch de 31/10 conferido; falta o botão novo (0.20.1) |
+| Apresentador | **ok** (03/11): gravação do Freddy pelo botão novo, seguindo os pedidos falados; falta ver o painel novo (formatos) na tela |
 | 6 · visual `aula` | falta aula real; falta o perfil `corte` |
 | 7 · falantes | falta vozes reais |
 | 8 · Secretário (ata) | falta reunião real |

@@ -8,6 +8,9 @@
   nos arquivos do vídeo quando fica pronto. Antes, o Apresentador só podia ser pedido antes de transcrever.
 - 593 testes. **Verificado**: o painel numa cópia da gravação de 01/11, com um `claude` falso, anotou o pedido
   e rodou o trabalho na pista dos agentes até "Pronto". Falta ver o botão na tela e rodar com o Claude Code de verdade.
+- **Pronto do painel mostra o arquivo final**: "O que os agentes escreveram" listava só os `.md`, então a
+  apresentação aparecia como o roteiro `.md` e o `.pptx` ficava escondido (e a ata sem o `.docx`/`.pdf`, as
+  cartas sem o `.csv`). Agora aparece o final no lugar do rascunho de mesmo nome. Achado na gravação de 03/11.
 
 ## 0.20.0 — 2026-10-31
 

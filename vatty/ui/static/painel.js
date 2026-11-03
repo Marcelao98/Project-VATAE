@@ -243,6 +243,16 @@ function desenharDeck() {
 }
 
 /* ---------- pronto ---------- */
+// O que os agentes entregaram: o arquivo final (.pptx, .docx, .pdf, .csv) no lugar do rascunho .md de mesmo nome.
+const FINAIS = [".pptx", ".docx", ".pdf", ".csv"];
+function entregas(gerados) {
+  const sem = (g) => g.replace(/\.[^.]+$/, "");
+  const comFinal = new Set(gerados.filter((g) => FINAIS.some((f) => g.endsWith(f))).map(sem));
+  return gerados.filter((g) => g.endsWith(".md") ? !comFinal.has(sem(g)) : FINAIS.some((f) => g.endsWith(f)) && !g.startsWith("slides."));
+}
+function nomeEntrega(g) {
+  return g.endsWith(".pptx") ? "Apresentação de slides: " + g : g;
+}
 function trabalhoDosAgentes(pasta) {  // o mais recente da pista dos agentes para esta pasta
   return [...estado.trabalhos.values()].filter((x) => x.pista === "agentes" && x.entrada === pasta)
     .sort((a, b) => b.criado - a.criado)[0];
@@ -316,8 +326,8 @@ function desenharPronto(lista) {
           ", ou copie o prompt para outra IA:"),
         el("div", { class: "pedido" }, ...botoes, status));
       api("video/" + encodeURIComponent(slug)).then((v) => {
-        const mds = v.gerados.filter((g) => g.endsWith(".md"));
-        arquivos.replaceChildren(...(mds.length ? mds.map((g) => el("a", { class: "btn-mini", href: comToken("arquivo/" + encodeURIComponent(slug) + "/" + encodeURIComponent(g)) }, g))
+        const mds = entregas(v.gerados);
+        arquivos.replaceChildren(...(mds.length ? mds.map((g) => el("a", { class: "btn-mini", href: comToken("arquivo/" + encodeURIComponent(slug) + "/" + encodeURIComponent(g)) }, nomeEntrega(g)))
           : aj && ["fila", "rodando"].includes(aj.estado) ? []
           : [el("span", { class: "dica" }, painel.claude ? "Nenhum arquivo ainda: veja o log no Terminal (embaixo)." : "Nada ainda: o Claude Code não está neste PC.")]));
       }).catch(() => {});

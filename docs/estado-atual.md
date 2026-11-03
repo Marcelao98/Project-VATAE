@@ -1,47 +1,45 @@
-# Onde estamos (31/10/2026)
+# Onde estamos (03/11/2026)
 
 Arquivo de passagem de bastão: o que foi feito, o que falta e por onde continuar. Quem pega o projeto
 (você ou o Claude Code local) começa por aqui e depois volta ao `CLAUDE.md`.
 
 ## 1. Estado do repositório
 
-- **`main` é a verdade de novo.** Até 31/10 o `main` estava parado em 12/10 (0.11.0), e o trabalho
-  real estava espalhado em branches. Em 31/10 tudo foi juntado no `main`:
-  `linux` (que já continha `ui-*`, `painel`, `captura-tela`, `agente-perito`, `diarizacao`, `lote`,
-  `busca`, `glossario`, `srt`, `duvidosos`, `agentes-novos`...) + `perfil-app` + `secretario` +
-  `vatty-evolucao` + o commit local "Added a Linux version".
-- Versão **0.18.1**. **570 testes, todos verdes** (conferido no Fedora 44 em 31/10, Python 3.14, `.venv`).
-- Os branches antigos já estão dentro do `main` e podem ser apagados (ver seção 4).
+- **`main` = GitHub = 0.20.0** (31/10, PR #27: Apresentador). **593 testes, todos verdes** no Fedora 44
+  (Python 3.14, `.venv`).
+- **Só no PC, ainda sem PR** (em cima do `main`, nesta ordem):
+  - `apresentador-no-painel` (0.20.1): botão "Chamar o Apresentador" no leitor da biblioteca. É a versão
+    que o atalho do desktop abre desde 03/11. Falta ver o botão funcionando com o Claude Code de verdade.
+  - `arrumacao-novembro`: CI no GitHub Actions, este arquivo, o roteiro de testes e o BACKLOG atualizados.
+- **Pendente de decisão:** o ramo `ccr-883f2a0c-0pd5sv` (no GitHub) troca a licença MIT pela PolyForm
+  Noncommercial 1.0.0 (seria a 0.21.0). Nada foi juntado.
+- **Ramos antigos:** 26 ramos do GitHub já estão inteiros dentro do `main` (conferido em 03/11) e podem
+  ser apagados com o comando da seção 4. Só o `ccr-…` (licença) tem coisa que o `main` não tem.
 
-**Regra daqui pra frente:** cada trabalho num branch curto → PR para o `main` → merge → apaga o
-branch. Nunca deixar o trabalho só num branch.
+**Regra:** cada trabalho num branch curto → PR para o `main` → merge → apaga o branch.
 
-## 2. Roteiro: o que está feito e o que falta confirmar
+## 2. O que falta: usar de verdade
 
-Itens 1 a 14 do roteiro do `CLAUDE.md` estão **feitos em código e testados com dublês**. O que falta é
-**usar de verdade**, com mídia e hardware reais:
+Os 14 itens do roteiro do `CLAUDE.md` estão **feitos em código e testados com dublês**. O que falta é
+**usar com mídia e hardware reais**. A ordem certa (o que depende do quê) está em
+**`docs/roteiro-de-testes.md`**; os resultados vão para `docs/testes-reais.md`.
 
-| Item | Falta |
+| Item | Situação real (03/11) |
 |---|---|
-| 5, 10, 12 · gravação de som e tela, painel "Começar" (Windows) | confirmar num Windows real |
-| 14 · Linux: som pelo PipeWire, tela no Wayland | confirmar no Fedora (você já está gravando: anotar!) |
-| 6 · visual `aula` | confirmar com uma aula real; falta o perfil `corte` |
-| 7 · separação de falantes | confirmar com vozes reais |
-| 8 · Secretário (ata .docx/.pdf) | confirmar numa reunião real |
-| 9 · `vatty ui` | usar no PC (só foi conferida na nuvem) |
-| 11 · Perito | nunca rodado de verdade |
-| 13 · login do navegador no YouTube | não testado |
-
-O roteiro de teste do Fedora já está escrito em `docs/testes-reais.md`, seção
-"A fazer: Vatty no Fedora (0.18.0)". **É a prioridade número 1**: sem isso, cada parte nova é construída
-em cima de algo que ninguém viu funcionar.
-
-**Andamento no Fedora (31/10):** itens 0 (instalar), 1 (som; microfone precisou baixar para 40%) e 3 (painel
-com tela) rodados, anotados em `docs/testes-reais.md`. Novos: `vatty verificar [--instalar]` e `vatty juntar` (um `video.mp4` para enviar).
-Também: botão "Gerar slides" na biblioteca e o agente Apresentador (`vatty apresentacao`).
-Em 03/11 (0.20.1): o Apresentador também pode ser chamado num vídeo já transcrito, pelo leitor da biblioteca.
-Falta: item 2 inteiro pela CLI (cancelar, Ctrl+C, segunda vez sem perguntar), medir a sincronia, item 4
-(YouTube e agentes) e saber por que o `tela.mp4` foi apagado com "Guardar o vídeo da tela".
+| 0 · instalar no Fedora | **ok** (31/10); `vatty verificar` confere tudo |
+| 1 · som no Fedora (PipeWire) | **ok** (31/10); microfone precisou ir para 40% |
+| 3 · painel com tela e áudio | **ok** (31/10): Pronto com `visual.json` e laudo do Perito |
+| 2 · tela no Wayland pela CLI | falta: permissão lembrada, cancelar, Ctrl+C |
+| sincronia tela × fala | falta medir (3 trocas de tela com "agora") |
+| `tela.mp4` apagado com "Guardar o vídeo da tela" | consertado na 0.19.x; falta confirmar |
+| 4 · YouTube pelo painel | falta |
+| Perito | rodou uma vez (31/10); falta conferir se os bugs têm evidência e nada inventado |
+| Apresentador | deck do pitch de 31/10 conferido; falta o botão novo (0.20.1) |
+| 6 · visual `aula` | falta aula real; falta o perfil `corte` |
+| 7 · falantes | falta vozes reais |
+| 8 · Secretário (ata) | falta reunião real |
+| 13 · login do navegador no YouTube | falta |
+| 5, 10, 12 · Windows | falta um Windows real |
 
 ## 3. Engenharia: como fazer a Vatty crescer (web, desktop, app)
 
@@ -62,8 +60,8 @@ quebrar a interface sem nenhum teste avisar. E a interface não consegue mostrar
 
 ### Passos sugeridos (um PR cada, nesta ordem)
 
-1. **CI.** GitHub Actions rodando `python -m unittest discover -s tests` em cada push e PR. É barato e
-   protege o `main`.
+1. **CI.** ~~GitHub Actions rodando os testes em cada push e PR.~~ Feito em 03/11 (`.github/workflows/testes.yml`,
+   Linux e Windows), no ramo `arrumacao-novembro`.
 2. **Eventos estruturados em vez de texto.** A CLI ganha `--eventos json`: cada mensagem, progresso,
    aviso, pergunta e "pronto" sai como uma linha JSON. O runner lê JSON em vez de regex. **O subprocesso
    continua**, de propósito: cancelar é matar o processo, e a memória do Whisper volta ao sistema no fim.
@@ -96,7 +94,7 @@ Testes sempre **com o ambiente da Vatty**, nunca com o Python do sistema (o do s
 `numpy`, e quase todos os testes falham na importação):
 
 ```bash
-.venv/bin/python -m unittest discover -s tests     # esperado: 559 testes OK
+.venv/bin/python -m unittest discover -s tests     # esperado: 593 testes OK
 ```
 
 Limpeza dos branches que já estão no `main` (só apaga os que estão dentro dele: `-d` recusa o resto):
@@ -112,13 +110,9 @@ done
 
 Depois, abra o `claude` na pasta e cole um destes pedidos:
 
-- **Teste real no Fedora (prioridade):**
-  "Leia `docs/estado-atual.md` e `docs/testes-reais.md`. Vamos rodar juntos o roteiro 'A fazer: Vatty no
-  Fedora (0.18.0)', passo a passo. Em cada passo, me diga o comando, espere o resultado e anote numa
-  entrada nova com a data. Pare no primeiro passo que quebrar."
-- **CI (passo 1 da seção 3):**
-  "Leia `docs/estado-atual.md`. Faça o passo 1 da seção 3 (CI no GitHub Actions) num branch novo e abra um PR
-  para o `main`."
+- **Testar aos poucos:**
+  "Leia `docs/roteiro-de-testes.md`. Vamos fazer o próximo teste que ainda não tem resultado em
+  `docs/testes-reais.md`. Me diga o que fazer, espere o resultado e anote numa entrada nova com a data."
 - **Eventos estruturados (passo 2 da seção 3):**
   "Leia `docs/estado-atual.md` e `docs/arquitetura.md`. Faça o passo 2 da seção 3 (`--eventos json` na CLI e
   o runner lendo JSON), mantendo o subprocesso. Rode os testes com `.venv/bin/python`. Branch novo e PR."

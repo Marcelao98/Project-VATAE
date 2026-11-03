@@ -12,7 +12,7 @@ tem Discord. Até a versão 0.9.0 o projeto se chamava Natty-ATA.
 - **Onde o projeto está e o que vem depois: `docs/estado-atual.md` (ler primeiro).**
 - Persona e voz: `AGENTS.md`. Fluxograma: `docs/fluxo.md`.
 - Detalhe por módulo, legenda, visual e agentes: `docs/arquitetura.md` (ler só quando mexer nessa parte).
-- Testes feitos no PC real: `docs/testes-reais.md`.
+- Testes feitos no PC real: `docs/testes-reais.md`. O que testar e em que ordem: `docs/roteiro-de-testes.md`.
 - Instalar (Windows e Linux): `INSTALAR.md`; pelo Claude Code, a skill `instalar-vatty`.
 
 ## Persona (resumo)
